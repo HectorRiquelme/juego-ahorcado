@@ -458,10 +458,13 @@ CREATE POLICY "rooms: insert as host"
   ON rooms FOR INSERT
   WITH CHECK (auth.uid() = host_id);
 
--- Actualizar: solo host o guest
+-- Actualizar: host/guest ya en sala, O cualquier auth para unirse (cuando guest_id IS NULL)
 CREATE POLICY "rooms: update if participant"
   ON rooms FOR UPDATE
-  USING (auth.uid() IN (host_id, guest_id));
+  USING (
+    auth.uid() IN (host_id, guest_id)
+    OR (guest_id IS NULL AND status = 'waiting' AND auth.uid() != host_id)
+  );
 
 -- ── MATCHES ─────────────────────────────────────────────────
 

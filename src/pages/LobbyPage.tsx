@@ -30,7 +30,9 @@ export default function LobbyPage() {
   const [copied, setCopied] = useState(false)
 
   const isHost = room?.host_id === user?.id
-  const bothConnected = room?.guest_id != null && onlinePlayers.length >= 2
+  // bothConnected: guest_id en BD es suficiente para habilitar el botón.
+  // onlinePlayers se usa solo para el indicador visual de "en línea".
+  const bothConnected = room?.guest_id != null
 
   // Manejar eventos del lobby
   const handleEvent = useCallback(

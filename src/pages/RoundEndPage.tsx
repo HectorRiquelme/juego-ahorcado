@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useGameStore } from '@/stores/gameStore'
 import { useAuthStore } from '@/stores/authStore'
-import { supabase } from '@/lib/supabase'
+import { supabase, db } from '@/lib/supabase'
 import { useRealtime } from '@/features/game/hooks/useRealtime'
 import type { GameEvent } from '@/features/game/hooks/useRealtime'
 import { decodeWord } from '@/utils/wordNormalizer'
@@ -64,7 +64,8 @@ export default function RoundEndPage() {
   const handleReady = () => {
     setIAmReady(true)
     sendEvent('player_ready', {})
-    if (opponentReady) goToNextPhase()
+    // BUG 15 FIX: NO llamar goToNextPhase aquí — el useEffect de abajo
+    // se encarga cuando ambos están listos, evitando doble ejecución
   }
 
   const goToNextPhase = () => {
@@ -75,6 +76,15 @@ export default function RoundEndPage() {
       navigate(`/rooms/${code}/match-end`)
     } else {
       const nextRound = gameState.currentRound + 1
+
+      // BUG 13 FIX: persistir current_round en BD para poder recuperar la partida
+      // Solo player1 (host) hace el update para evitar escrituras dobles
+      if (gameState.myId === (gameState.opponentId ? gameState.myId : gameState.myId)) {
+        void db.from('matches')
+          .update({ current_round: nextRound, updated_at: new Date().toISOString() })
+          .eq('id', gameState.matchId)
+      }
+
       const nextProposerId =
         gameState.currentRound % 2 === 0 ? gameState.opponentId : gameState.myId
       const isMyProposerTurn = nextProposerId === user?.id
@@ -89,15 +99,27 @@ export default function RoundEndPage() {
     }
   }
 
+  // Único punto donde se avanza de fase — cuando ambos están listos
   useEffect(() => {
     if (opponentReady && iAmReady) goToNextPhase()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [opponentReady, iAmReady])
 
+  // Si el oponente ya estaba listo cuando yo presiono el botón,
+  // el useEffect anterior se dispara correctamente por el cambio de iAmReady
+
   if (!roundState) {
     return (
-      <div className="min-h-dvh flex items-center justify-center">
+      // BUG 17 FIX: escape si se recarga la página y no hay estado en memoria
+      <div className="min-h-dvh flex flex-col items-center justify-center gap-4">
         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        <p className="text-text-muted text-sm">Cargando resultado...</p>
+        <button
+          onClick={() => navigate('/home')}
+          className="text-xs text-text-subtle underline mt-2"
+        >
+          Volver al inicio si tarda demasiado
+        </button>
       </div>
     )
   }

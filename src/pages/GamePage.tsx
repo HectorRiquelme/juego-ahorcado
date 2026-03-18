@@ -32,7 +32,7 @@ import { useChat } from '@/features/game/hooks/useChat'
 import { usePowerups } from '@/features/game/hooks/usePowerups'
 import type { PowerupType } from '@/types'
 import type { ChatMessage, ProposerFormData, RevealLetterResult, EliminateWrongResult } from '@/types/game'
-import { decodeWord, getWordStructure } from '@/utils/wordNormalizer'
+import { getWordStructure } from '@/utils/wordNormalizer'
 import { createRound, finishRound } from '@/features/game/services/gameService'
 
 import HangmanSVG from '@/features/game/components/HangmanSVG'
@@ -135,6 +135,11 @@ export default function GamePage() {
         correct ? `✅ La ${letter} está en la palabra` : `❌ La ${letter} no está`
       )
       if (activeTab === 'game') setUnreadChat((n) => n + 1)
+    },
+    // BUG 16 FIX: congelar el timer cuando el oponente activa time_freeze
+    onTimeFreeze: () => {
+      setTimeFrozen(true)
+      setTimeout(() => setTimeFrozen(false), 30000)
     },
   })
 
@@ -262,11 +267,14 @@ export default function GamePage() {
     chat.notifyPowerup('time_freeze', myName, POWERUP_LABELS.time_freeze)
   }
 
+  // BUG 14 FIX: pasar la palabra real desde roundWordRef en lugar de '' vacío.
+  // Para el proponente está en roundWordRef; para el desafiado no aplica
+  // (reveal_letter/eliminate_wrong los ejecuta el proponente con la palabra real).
   const { usePowerup } = usePowerups({
     roundId: roundState?.roundId ?? '',
     matchId: gameState?.matchId ?? '',
     userId: myId,
-    wordEncoded: '',
+    wordEncoded: roundState?.word ? btoa(unescape(encodeURIComponent(roundState.word))) : '',
     correctLetters: roundState?.correctLetters ?? [],
     wrongLetters: roundState?.wrongLetters ?? [],
     powerupsUsed: roundState?.powerupsUsed ?? [],
@@ -281,10 +289,6 @@ export default function GamePage() {
 
   const handlePowerup = async (type: PowerupType) => {
     if (!roundState) return
-    if (type === 'reveal_letter' || type === 'eliminate_wrong') {
-      const { data } = await supabase.from('rounds').select('word_encoded').eq('id', roundState.roundId).single()
-      if (data) roundWordRef.current = decodeWord((data as { word_encoded: string }).word_encoded)
-    }
     await usePowerup(type)
     updateRoundState({ powerupsUsed: [...(roundState.powerupsUsed ?? []), type] })
   }
@@ -321,8 +325,16 @@ export default function GamePage() {
 
   if (!gameState) {
     return (
-      <div className="min-h-dvh flex items-center justify-center">
+      // BUG 17 FIX: mostrar opción de escape si no hay estado (recarga de página)
+      <div className="min-h-dvh flex flex-col items-center justify-center gap-4">
         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        <p className="text-text-muted text-sm">Cargando partida...</p>
+        <button
+          onClick={() => navigate('/home')}
+          className="text-xs text-text-subtle underline mt-2"
+        >
+          Volver al inicio si tarda demasiado
+        </button>
       </div>
     )
   }
@@ -346,15 +358,27 @@ export default function GamePage() {
         />
       </div>
 
-      {/* Formulario del proponente — pantalla completa */}
+      {/* Formulario del proponente / espera del desafiado */}
       {isProposerChoosing && (
         <div className="flex-1 overflow-y-auto px-4 py-4 max-w-lg mx-auto w-full">
           <motion.div variants={slideUp} initial="hidden" animate="visible">
-            <ProposerForm
-              onSubmit={handleProposerSubmit}
-              maxPowerups={room?.initial_powerups ?? 3}
-              loading={proposerLoading}
-            />
+            {gameState.status === 'guesser_playing' ? (
+              // BUG 18 FIX: el desafiado ve feedback mientras el proponente elige
+              <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
+                <div className="text-5xl animate-pulse">🤔</div>
+                <h2 className="text-xl font-bold text-text">
+                  {gameState.opponentName} está eligiendo la palabra...
+                </h2>
+                <p className="text-text-muted text-sm">Prepárate para adivinar</p>
+                <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mt-2" />
+              </div>
+            ) : (
+              <ProposerForm
+                onSubmit={handleProposerSubmit}
+                maxPowerups={room?.initial_powerups ?? 3}
+                loading={proposerLoading}
+              />
+            )}
           </motion.div>
         </div>
       )}

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { db } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
@@ -18,20 +18,22 @@ export default function ProfilePage() {
   const { signOut } = useAuth()
   const [editing, setEditing] = useState(false)
   const [formData, setFormData] = useState({
-    display_name: profile?.display_name ?? '',
-    username: profile?.username ?? '',
-    bio: profile?.bio ?? '',
+    display_name: '',
+    username: '',
+    bio: '',
   })
   const [saving, setSaving] = useState(false)
 
-  // Sincronizar form cuando carga el perfil
-  if (profile && formData.username === '' && profile.username) {
-    setFormData({
-      display_name: profile.display_name ?? '',
-      username: profile.username,
-      bio: profile.bio ?? '',
-    })
-  }
+  // BUG 12 FIX: usar useEffect en lugar de setState durante el render
+  useEffect(() => {
+    if (profile) {
+      setFormData({
+        display_name: profile.display_name ?? '',
+        username: profile.username ?? '',
+        bio: profile.bio ?? '',
+      })
+    }
+  }, [profile])
 
   const handleSave = async () => {
     if (!user || !profile) return

@@ -21,6 +21,8 @@ interface UseGameStateOptions {
   onChatMessage?: (msg: ChatMessage) => void
   /** Callback cuando el proponente ingresa una letra (para mensaje de sistema en chat) */
   onLetterResult?: (letter: string, correct: boolean) => void
+  /** Callback cuando el oponente activa time_freeze (para congelar el timer local) */
+  onTimeFreeze?: () => void
 }
 
 /**
@@ -31,7 +33,7 @@ interface UseGameStateOptions {
  * - El DESAFIADO ve el tablero, activa comodines y se comunica por chat.
  * - Ambos pueden activar comodines (el desafiante también si se le pide).
  */
-export function useGameState({ roomCode, onChatMessage, onLetterResult }: UseGameStateOptions) {
+export function useGameState({ roomCode, onChatMessage, onLetterResult, onTimeFreeze }: UseGameStateOptions) {
   const { user } = useAuthStore()
   const {
     gameState,
@@ -46,6 +48,10 @@ export function useGameState({ roomCode, onChatMessage, onLetterResult }: UseGam
   const shieldConsumedRef = useRef(false)
 
   const myId = user?.id ?? ''
+
+  // Ref para callbacks que no deben recrear el canal
+  const onTimeFreezeRef = useRef(onTimeFreeze)
+  onTimeFreezeRef.current = onTimeFreeze
 
   // ─── Manejar eventos entrantes del otro jugador ──────────────────────────
 
@@ -79,6 +85,11 @@ export function useGameState({ roomCode, onChatMessage, onLetterResult }: UseGam
           if (powerupType === 'shield') {
             updateRoundState({ shieldActive: true })
           }
+          // BUG 16 FIX: time_freeze debe sincronizarse al oponente
+          // Se notifica via callback para que GamePage congele su timer
+          if (powerupType === 'time_freeze') {
+            onTimeFreezeRef.current?.()
+          }
           break
         }
 
@@ -105,7 +116,8 @@ export function useGameState({ roomCode, onChatMessage, onLetterResult }: UseGam
             score: myRoundScore,
           })
 
-          // Actualizar mis stats como desafiado
+          // BUG 11 FIX: calcular tiempo real tomado por el desafiado
+          const secondsTaken = Math.floor((Date.now() - roundStartTime.current) / 1000)
           void updateUserStatsAfterRound({
             userId: myId,
             roundWon: roundResult === 'won',
@@ -113,7 +125,7 @@ export function useGameState({ roomCode, onChatMessage, onLetterResult }: UseGam
             wrongLetters: gameState?.roundState?.wrongLetters.length ?? 0,
             powerupsUsed: gameState?.roundState?.powerupsUsed.length ?? 0,
             wordLength: gameState?.roundState?.wordLength ?? 0,
-            secondsTaken: 0,
+            secondsTaken,
             isProposer: false,
           })
 

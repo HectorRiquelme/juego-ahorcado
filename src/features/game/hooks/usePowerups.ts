@@ -6,6 +6,7 @@ import {
   getUniqueLettersToGuess,
   getWrongCandidateLetters,
   decodeWord,
+  normalizeLetter,
 } from '@/utils/wordNormalizer'
 import { recordPowerupUse } from '../services/gameService'
 import toast from 'react-hot-toast'
@@ -55,8 +56,9 @@ export function usePowerups(options: UsePowerupsOptions) {
             }
             // Elige letra más común (simplificado: aleatoria del resto)
             const letter = remaining[Math.floor(Math.random() * remaining.length)]
+            // BUG 20 FIX: normalizar cada caracter para manejar tildes correctamente
             const positions = word.toUpperCase().split('').reduce<number[]>((acc, ch, i) => {
-              if (ch === letter || ch === letter.toLowerCase()) acc.push(i)
+              if (normalizeLetter(ch) === letter) acc.push(i)
               return acc
             }, [])
 

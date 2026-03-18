@@ -10,7 +10,6 @@ import type { RevealLetterResult, ChatMessage } from '@/types/game'
 import {
   isWordComplete,
   normalizeWord,
-  decodeWord,
 } from '@/utils/wordNormalizer'
 import { submitLetterGuess, finishRound } from '../services/gameService'
 import { updateUserStatsAfterRound } from '@/features/stats/services/statsService'
@@ -20,6 +19,8 @@ interface UseGameStateOptions {
   roomCode: string
   /** Callback cuando llega un mensaje de chat del otro jugador */
   onChatMessage?: (msg: ChatMessage) => void
+  /** Callback cuando el proponente ingresa una letra (para mensaje de sistema en chat) */
+  onLetterResult?: (letter: string, correct: boolean) => void
 }
 
 /**
@@ -30,7 +31,7 @@ interface UseGameStateOptions {
  * - El DESAFIADO ve el tablero, activa comodines y se comunica por chat.
  * - Ambos pueden activar comodines (el desafiante también si se le pide).
  */
-export function useGameState({ roomCode, onChatMessage }: UseGameStateOptions) {
+export function useGameState({ roomCode, onChatMessage, onLetterResult }: UseGameStateOptions) {
   const { user } = useAuthStore()
   const {
     gameState,
@@ -60,6 +61,8 @@ export function useGameState({ roomCode, onChatMessage }: UseGameStateOptions) {
           } else {
             addWrongLetter(letter)
           }
+          // Notificar a GamePage para mostrar mensaje en chat
+          onLetterResult?.(letter, correct)
           break
         }
 
@@ -131,11 +134,23 @@ export function useGameState({ roomCode, onChatMessage }: UseGameStateOptions) {
         }
 
         case 'round_created': {
-          const { roundId, roundNumber } = event.payload as {
+          // BUG 5 FIX: usamos los datos del evento en lugar de leer word_encoded de BD
+          const { roundId, roundNumber, wordLength, wordStructure, hint, categoryId,
+                  maxErrors, timerSeconds, powerupsAvailable } = event.payload as {
             roundId: string
             roundNumber: number
+            wordLength: number
+            wordStructure: number[]
+            hint: string | null
+            categoryId: string
+            maxErrors: number
+            timerSeconds: number | null
+            powerupsAvailable: string[]
           }
-          void loadRoundAsGuesser(roundId, roundNumber)
+          void loadRoundAsGuesser(roundId, roundNumber, {
+            wordLength, wordStructure, hint, categoryId,
+            maxErrors, timerSeconds, powerupsAvailable,
+          })
           break
         }
 
@@ -148,7 +163,7 @@ export function useGameState({ roomCode, onChatMessage }: UseGameStateOptions) {
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [gameState, roomCode, onChatMessage]
+    [gameState, roomCode, onChatMessage, onLetterResult]
   )
 
   const { sendEvent } = useRealtime({
@@ -158,55 +173,54 @@ export function useGameState({ roomCode, onChatMessage }: UseGameStateOptions) {
   })
 
   // ─── Cargar ronda como desafiado ────────────────────────────────────────
+  // BUG 5 FIX: los datos vienen del evento round_created, NO de word_encoded en BD
+
+  interface RoundEventData {
+    wordLength: number
+    wordStructure: number[]
+    hint: string | null
+    categoryId: string
+    maxErrors: number
+    timerSeconds: number | null
+    powerupsAvailable: string[]
+  }
 
   const loadRoundAsGuesser = useCallback(
-    async (roundId: string, roundNumber: number) => {
-      const { data: rawRound } = await supabase
-        .from('rounds')
-        .select('*')
-        .eq('id', roundId)
-        .single()
-
-      const round = rawRound as import('@/types').Round | null
-      if (!round || !gameState) return
+    async (roundId: string, roundNumber: number, eventData: RoundEventData) => {
+      if (!gameState) return
 
       roundStartTime.current = Date.now()
       shieldConsumedRef.current = false
 
+      // Solo cargamos la categoría (nombre/emoji) — sin tocar word_encoded
       const { data: rawCat } = await supabase
         .from('categories')
         .select('name, emoji')
-        .eq('id', round.category_id ?? '')
+        .eq('id', eventData.categoryId)
         .maybeSingle()
       const category = rawCat as { name: string; emoji: string | null } | null
 
-      // El desafiado NO decodifica la palabra — solo sabe el largo
-      const wordEncoded = round.word_encoded
-      const tempDecoded = decodeWord(wordEncoded)
-      const wordLength = tempDecoded.replace(/\s/g, '').length
-      const wordStructure = tempDecoded.split(' ').map((t) => t.length)
-
       setRoundState({
-        roundId: round.id,
+        roundId,
         roundNumber,
         isProposer: false,
         isGuesser: true,
         word: null,
-        wordLength,
-        wordStructure,
-        hint: round.hint,
+        wordLength: eventData.wordLength,
+        wordStructure: eventData.wordStructure,
+        hint: eventData.hint,
         hintExtra: null,
         category: category?.name ?? 'Libre',
         categoryEmoji: category?.emoji ?? '🎯',
-        correctLetters: round.correct_letters as string[],
-        wrongLetters: round.wrong_letters as string[],
-        maxErrors: round.max_errors,
-        errorsCount: round.errors_count,
-        powerupsAvailable: round.powerups_available as PowerupType[],
+        correctLetters: [],
+        wrongLetters: [],
+        maxErrors: eventData.maxErrors,
+        errorsCount: 0,
+        powerupsAvailable: eventData.powerupsAvailable as PowerupType[],
         powerupsUsed: [],
         shieldActive: false,
-        timerSeconds: round.timer_seconds,
-        timeLeft: round.timer_seconds,
+        timerSeconds: eventData.timerSeconds,
+        timeLeft: eventData.timerSeconds,
         result: null,
         score: null,
         opponentReady: false,

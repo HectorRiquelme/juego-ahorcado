@@ -24,8 +24,8 @@ export function useAuth() {
     if (error) throw error
 
     if (data.user) {
-      // Intentar crear el perfil. Si falla (ej: SQL no ejecutado todavía),
-      // lanzamos el error con contexto claro para que AuthPage lo traduzca.
+      // BUG 6 FIX: si falla la creación del perfil, hacer signOut para evitar
+      // cuenta huérfana (usuario en auth.users sin fila en profiles).
       const { error: profileError } = await db.from('profiles').insert({
         id: data.user.id,
         username,
@@ -33,12 +33,13 @@ export function useAuth() {
       })
 
       if (profileError) {
-        // Si el error es porque la tabla no existe, damos un mensaje útil
+        // Limpiar la sesión recién creada para evitar cuenta huérfana
+        await supabase.auth.signOut()
+
         const msg = (profileError as { message?: string })?.message ?? ''
         if (msg.includes('relation') || msg.includes('does not exist')) {
           throw new Error('relation "profiles" does not exist')
         }
-        // Si el username ya existe en otra cuenta
         if (msg.includes('duplicate') || msg.includes('unique')) {
           throw new Error('duplicate key username')
         }

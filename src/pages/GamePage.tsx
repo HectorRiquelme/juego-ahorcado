@@ -28,10 +28,8 @@ import { useAuthStore } from '@/stores/authStore'
 import { useGameStore } from '@/stores/gameStore'
 import { useRoomStore } from '@/stores/roomStore'
 import { useGameState } from '@/features/game/hooks/useGameState'
-import { useRealtime } from '@/features/game/hooks/useRealtime'
 import { useChat } from '@/features/game/hooks/useChat'
 import { usePowerups } from '@/features/game/hooks/usePowerups'
-import type { GameEvent } from '@/features/game/hooks/useRealtime'
 import type { PowerupType } from '@/types'
 import type { ChatMessage, ProposerFormData, RevealLetterResult, EliminateWrongResult } from '@/types/game'
 import { decodeWord, getWordStructure } from '@/utils/wordNormalizer'
@@ -127,10 +125,17 @@ export default function GamePage() {
   )
 
   // ─── Hook de gameState (lógica de letra/fin de ronda) ──────────────────
+  // Un único canal Realtime vive aquí dentro — no hay segundo useRealtime
 
   const { guessLetter, sendEvent } = useGameState({
     roomCode: code ?? '',
     onChatMessage: handleIncomingChatMessage,
+    onLetterResult: (letter, correct) => {
+      chat.addSystemMessage(
+        correct ? `✅ La ${letter} está en la palabra` : `❌ La ${letter} no está`
+      )
+      if (activeTab === 'game') setUnreadChat((n) => n + 1)
+    },
   })
 
   // ─── Chat hook ─────────────────────────────────────────────────────────
@@ -149,33 +154,9 @@ export default function GamePage() {
     if (activeTab === 'chat') setUnreadChat(0)
   }, [activeTab])
 
-  // ─── Eventos Realtime del otro jugador (proponente) ────────────────────
-
-  const handleEvent = useCallback(
-    (event: GameEvent) => {
-      if (event.type === 'letter_guessed' && roundState?.isGuesser) {
-        const { letter, correct } = event.payload as { letter: string; correct: boolean }
-        if (correct) addCorrectLetter(letter)
-        else updateRoundState({
-          errorsCount: (roundState?.errorsCount ?? 0) + 1,
-          wrongLetters: [...(roundState?.wrongLetters ?? []), letter],
-        })
-        // Auto-mensaje del sistema en chat
-        chat.addSystemMessage(
-          correct ? `✅ La ${letter} está en la palabra` : `❌ La ${letter} no está`
-        )
-      }
-      if (event.type === 'chat_message') {
-        const { message } = event.payload as { message: ChatMessage }
-        chat.receiveMessage(message)
-        if (activeTab === 'game') setUnreadChat((n) => n + 1)
-      }
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [roundState, activeTab]
-  )
-
-  useRealtime({ roomCode: code ?? '', userId: myId, onEvent: handleEvent })
+  // BUG 1 FIX: eliminado el segundo useRealtime — ahora hay un único canal
+  // gestionado dentro de useGameState → useRealtime. Los eventos de chat y
+  // letter_guessed se manejan a través de onChatMessage y del store compartido.
 
   // ─── Proponente envía la palabra ──────────────────────────────────────
 
@@ -226,7 +207,19 @@ export default function GamePage() {
         opponentReady: false,
       })
 
-      sendEvent('round_created', { roundId: round.id, roundNumber: gameState.currentRound })
+      // BUG 5 FIX: el proponente envía wordLength y wordStructure en el evento
+      // para que el desafiado NO necesite leer word_encoded de la BD
+      sendEvent('round_created', {
+        roundId: round.id,
+        roundNumber: gameState.currentRound,
+        wordLength: formData.word.replace(/\s/g, '').length,
+        wordStructure: structure,
+        hint: formData.hint || null,
+        categoryId: formData.categoryId,
+        maxErrors: room.max_errors,
+        timerSeconds: room.timer_seconds,
+        powerupsAvailable: round.powerups_available,
+      })
       chat.addSystemMessage('¡Ronda iniciada! El desafiado está esperando tu primer movimiento.')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Error al crear ronda')
@@ -305,6 +298,9 @@ export default function GamePage() {
 
   const handleTimeUp = useCallback(async () => {
     if (!roundState || !gameState) return
+    // BUG 3 FIX: solo el PROPONENTE finaliza la ronda por timeout.
+    // El desafiado simplemente espera el evento 'round_ended' via Realtime.
+    if (!roundState.isProposer) return
     toast.error('¡Se acabó el tiempo!')
     await finishRound({
       roundId: roundState.roundId,

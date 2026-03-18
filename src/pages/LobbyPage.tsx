@@ -36,8 +36,9 @@ export default function LobbyPage() {
   const handleEvent = useCallback(
     (event: GameEvent) => {
       if (event.type === 'match_started') {
-        const { matchId } = event.payload as { matchId: string }
-        navigate(`/rooms/${code}/game`, { state: { matchId } })
+        // BUG 2 FIX: incluir firstProposerId para que el guest sepa quién propone primero
+        const { matchId, firstProposerId } = event.payload as { matchId: string; firstProposerId: string }
+        navigate(`/rooms/${code}/game`, { state: { matchId, firstProposerId } })
       }
     },
     [code, navigate]

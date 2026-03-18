@@ -44,24 +44,19 @@ export async function createRoom(params: CreateRoomParams): Promise<Room> {
 }
 
 export async function joinRoom(code: string, guestId: string): Promise<Room> {
-  const { data: rawRoom, error: findError } = await supabase
-    .from('rooms').select('*')
+  // BUG 4 FIX: UPDATE atómico con condición — evita race condition TOCTOU.
+  // Si dos usuarios intentan unirse simultáneamente, solo uno puede actualizar
+  // la fila que tiene guest_id IS NULL y status = 'waiting'.
+  const { data, error } = await db.from('rooms')
+    .update({ guest_id: guestId, status: 'lobby', updated_at: new Date().toISOString() })
     .eq('code', code.toUpperCase())
     .eq('status', 'waiting')
     .is('guest_id', null)
+    .neq('host_id', guestId)   // No puede unirse a su propia sala
+    .select()
     .single()
 
-  if (findError || !rawRoom) throw new Error('Sala no encontrada o ya está en uso')
-
-  const room = rawRoom as Room
-  if (room.host_id === guestId) throw new Error('No puedes unirte a tu propia sala')
-
-  const { data, error } = await db.from('rooms')
-    .update({ guest_id: guestId, status: 'lobby', updated_at: new Date().toISOString() })
-    .eq('id', room.id)
-    .select().single()
-
-  if (error) throw error
+  if (error || !data) throw new Error('Sala no encontrada o ya está en uso')
   return data as Room
 }
 

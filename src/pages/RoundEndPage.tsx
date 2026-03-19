@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useGameStore } from '@/stores/gameStore'
 import { useAuthStore } from '@/stores/authStore'
+import { useRoomStore } from '@/stores/roomStore'
 import { supabase, db } from '@/lib/supabase'
 import { useRealtime } from '@/features/game/hooks/useRealtime'
 import type { GameEvent } from '@/features/game/hooks/useRealtime'
@@ -29,6 +30,7 @@ export default function RoundEndPage() {
   const navigate = useNavigate()
   const { user } = useAuthStore()
   const { gameState, updateGameStatus, setRoundState } = useGameStore()
+  const { room } = useRoomStore()
   const [opponentReady, setOpponentReady] = useState(false)
   const [iAmReady, setIAmReady] = useState(false)
   const [revealedWord, setRevealedWord] = useState<string | null>(null)
@@ -78,8 +80,9 @@ export default function RoundEndPage() {
       const nextRound = gameState.currentRound + 1
 
       // BUG 13 FIX: persistir current_round en BD para poder recuperar la partida
-      // Solo player1 (host) hace el update para evitar escrituras dobles
-      if (gameState.myId === (gameState.opponentId ? gameState.myId : gameState.myId)) {
+      // Solo el host (player1) hace el update para evitar escrituras dobles
+      const isHost = room?.host_id === gameState.myId
+      if (isHost) {
         void db.from('matches')
           .update({ current_round: nextRound, updated_at: new Date().toISOString() })
           .eq('id', gameState.matchId)

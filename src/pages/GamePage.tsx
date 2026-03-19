@@ -33,7 +33,7 @@ import { usePowerups } from '@/features/game/hooks/usePowerups'
 import type { PowerupType } from '@/types'
 import type { ChatMessage, ProposerFormData, RevealLetterResult, EliminateWrongResult } from '@/types/game'
 import { getWordStructure } from '@/utils/wordNormalizer'
-import { createRound, finishRound } from '@/features/game/services/gameService'
+import { createRound } from '@/features/game/services/gameService'
 
 import HangmanSVG from '@/features/game/components/HangmanSVG'
 import WordDisplay from '@/features/game/components/WordDisplay'
@@ -127,7 +127,7 @@ export default function GamePage() {
   // ─── Hook de gameState (lógica de letra/fin de ronda) ──────────────────
   // Un único canal Realtime vive aquí dentro — no hay segundo useRealtime
 
-  const { guessLetter, sendEvent } = useGameState({
+  const { guessLetter, sendEvent, handleRoundEnd } = useGameState({
     roomCode: code ?? '',
     onChatMessage: handleIncomingChatMessage,
     onLetterResult: (letter, correct) => {
@@ -267,14 +267,19 @@ export default function GamePage() {
     chat.notifyPowerup('time_freeze', myName, POWERUP_LABELS.time_freeze)
   }
 
-  // BUG 14 FIX: pasar la palabra real desde roundWordRef en lugar de '' vacío.
-  // Para el proponente está en roundWordRef; para el desafiado no aplica
-  // (reveal_letter/eliminate_wrong los ejecuta el proponente con la palabra real).
+  // BUG 14 FIX: el proponente tiene la palabra real en roundState.word.
+  // El desafiado tiene word=null — usePowerups solo se usa con la palabra real
+  // (el proponente ejecuta reveal_letter y eliminate_wrong que la necesitan).
+  // Para show_structure, el desafiado usa la estructura ya disponible en roundState.
   const { usePowerup } = usePowerups({
     roundId: roundState?.roundId ?? '',
     matchId: gameState?.matchId ?? '',
     userId: myId,
-    wordEncoded: roundState?.word ? btoa(unescape(encodeURIComponent(roundState.word))) : '',
+    wordEncoded: roundState?.word
+      ? btoa(unescape(encodeURIComponent(roundState.word)))
+      : roundWordRef.current
+      ? btoa(unescape(encodeURIComponent(roundWordRef.current)))
+      : '',
     correctLetters: roundState?.correctLetters ?? [],
     wrongLetters: roundState?.wrongLetters ?? [],
     powerupsUsed: roundState?.powerupsUsed ?? [],
@@ -283,7 +288,10 @@ export default function GamePage() {
     onEliminateWrong: handleEliminateWrong,
     onShowHint: handleShowHint,
     onActivateShield: handleActivateShield,
-    onShowStructure: handleShowStructure,
+    // Para el desafiado, show_structure usa la estructura ya disponible en roundState
+    onShowStructure: (structure) => handleShowStructure(
+      roundState?.isGuesser ? (roundState.wordStructure ?? structure) : structure
+    ),
     onFreezeTime: handleFreezeTime,
   })
 
@@ -295,9 +303,12 @@ export default function GamePage() {
 
   // Escudo: solo el proponente lo puede activar desde el PowerupBar
   const powerupsForProposer = roundState?.powerupsAvailable ?? []
-  // Desafiado ve todos los comodines MENOS el escudo (que es del proponente)
+  // BUG 14 FIX: el desafiado no tiene la palabra real, así que los comodines
+  // que requieren conocerla (reveal_letter, eliminate_wrong) los ejecuta el
+  // proponente. El desafiado solo puede activar los que no dependen de la palabra.
+  const GUESSER_POWERUPS: PowerupType[] = ['extra_hint', 'show_structure', 'time_freeze']
   const powerupsForGuesser = (roundState?.powerupsAvailable ?? []).filter(
-    (p) => p !== 'shield'
+    (p) => GUESSER_POWERUPS.includes(p)
   )
 
   const handleTimeUp = useCallback(async () => {
@@ -306,20 +317,11 @@ export default function GamePage() {
     // El desafiado simplemente espera el evento 'round_ended' via Realtime.
     if (!roundState.isProposer) return
     toast.error('¡Se acabó el tiempo!')
-    await finishRound({
-      roundId: roundState.roundId,
-      matchId: gameState.matchId,
-      result: 'timeout',
-      secondsTaken: roundState.timerSeconds ?? 60,
-      correctLetters: roundState.correctLetters.length,
-      wrongLetters: roundState.wrongLetters.length,
-      powerupsUsed: roundState.powerupsUsed.length,
-      timerSeconds: roundState.timerSeconds,
-    })
-    updateRoundState({ result: 'timeout' })
-    sendEvent('round_ended', { result: 'timeout', score: 0 })
-    navigate(`/rooms/${code}/round-end`)
-  }, [roundState, gameState, updateRoundState, sendEvent, navigate, code])
+    // Delegar en handleRoundEnd para calcular puntos correctamente y emitir
+    // el payload { result, guesserScore, proposerScore } al desafiado.
+    const word = roundState.word ?? roundWordRef.current
+    await handleRoundEnd('timeout', roundState.timerSeconds ?? 60, word)
+  }, [roundState, gameState, handleRoundEnd])
 
   // ─── Guard de carga ────────────────────────────────────────────────────
 

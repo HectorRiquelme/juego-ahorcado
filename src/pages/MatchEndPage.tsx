@@ -50,17 +50,20 @@ export default function MatchEndPage() {
       const typedMatchData = match as { player1_id: string; duo_id: string | null; started_at: string | null; current_round: number }
 
       // BUG 7 FIX: solo player1 (host) hace el UPDATE del match para evitar
-      // que ambos jugadores sobreescriban simultáneamente con valores distintos
+      // que ambos jugadores sobreescriban simultáneamente con valores distintos.
+      // Los scores se asignan según el rol real de cada jugador (no la perspectiva local).
       if (typedMatchData.player1_id === myId) {
         await db.from('matches').update({
           status: 'match_end',
           winner_id: winnerId,
-          player1_score: myScore,
+          player1_score: myScore,       // yo soy player1
           player2_score: opponentScore,
           ended_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         }).eq('id', matchId)
       }
+      // Si soy player2, no hago UPDATE — player1 lo hará con los valores correctos.
+      // (player1 siempre está en la partida y siempre llega a match-end)
 
       // Actualizar user stats
       await updateUserStatsAfterMatch({

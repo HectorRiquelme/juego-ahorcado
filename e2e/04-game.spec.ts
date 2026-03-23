@@ -35,8 +35,8 @@ test.describe('Partida completa entre dos jugadores', () => {
     await pageA.waitForURL(/\/rooms\/[A-Z0-9]+\/lobby/, { timeout: 15000 })
     console.log('[GAME TEST] Ambos en lobby')
 
-    // Dar tiempo a que el Realtime se suscriba en ambos
-    await pageB.waitForTimeout(2000)
+    // Esperar a que B vea al host en el lobby (indica que Realtime se suscribió)
+    await pageB.getByText(USER_A.username, { exact: false }).waitFor({ timeout: 10000 }).catch(() => {})
 
     // ─── A inicia la partida ───────────────────────────────────────────
     const startBtn = pageA.getByRole('button', { name: /iniciar/i })
@@ -75,16 +75,10 @@ test.describe('Partida completa entre dos jugadores', () => {
     console.log('[GAME TEST] Ambos en /game')
 
     // ─── Detectar quién es proponente ─────────────────────────────────
-    // El proponente ve un formulario con input de palabra
-    // Esperamos a que cualquiera de los dos tenga contenido visible
-    await pageA.waitForTimeout(3000)
-
-    // Esperar activamente a que el estado del juego se inicialice en cualquiera
-    // El proponente ve inputs de texto, el desafiado ve el SVG del ahorcado o spinner
     let aIsProposer = false
     let bIsProposer = false
-    for (let attempt = 0; attempt < 6; attempt++) {
-      await pageA.waitForTimeout(1500)
+    for (let attempt = 0; attempt < 8; attempt++) {
+      await pageA.waitForTimeout(1000)
       // El proponente ve el ProposerForm — tiene un botón de submit y varios inputs
       // El desafiado ve "está eligiendo la palabra" o el tablero
       // El proponente ve el formulario con un input de texto para la palabra
@@ -132,7 +126,7 @@ test.describe('Partida completa entre dos jugadores', () => {
       const keyBtn = proposerPage.getByRole('button', { name: letter, exact: true })
       if (await keyBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
         await keyBtn.click()
-        await proposerPage.waitForTimeout(1500)
+        await proposerPage.waitForTimeout(800)
         console.log(`[GAME TEST] Letra: ${letter}`)
       } else {
         console.log(`[GAME TEST] Letra ${letter} no visible`)
@@ -179,7 +173,7 @@ test.describe('Partida completa entre dos jugadores', () => {
     ])
     await pageB.waitForURL(/\/rooms\/[A-Z0-9]+\/lobby/, { timeout: 15000 })
     await pageA.waitForURL(/\/rooms\/[A-Z0-9]+\/lobby/, { timeout: 15000 })
-    await pageB.waitForTimeout(2000)
+    await pageB.getByText(USER_A.username, { exact: false }).waitFor({ timeout: 10000 }).catch(() => {})
 
     const startBtn2 = pageA.getByRole('button', { name: /iniciar/i })
     await expect(startBtn2).toBeEnabled({ timeout: 10000 })
@@ -190,9 +184,9 @@ test.describe('Partida completa entre dos jugadores', () => {
     })
 
     // Verificar que al menos un jugador ve el timer (si está configurado)
-    await pageA.waitForTimeout(3000)
-    const timerA = pageA.locator('[class*="timer"], circle, [data-testid="timer"]')
-    const timerB = pageB.locator('[class*="timer"], circle, [data-testid="timer"]')
+    await pageA.waitForTimeout(2000)
+    const timerA = pageA.locator('circle, [data-testid="timer"]')
+    const timerB = pageB.locator('circle, [data-testid="timer"]')
     const timerVisible = await timerA.isVisible().catch(() => false)
       || await timerB.isVisible().catch(() => false)
     console.log(`[TIMER TEST] Timer visible: ${timerVisible}`)

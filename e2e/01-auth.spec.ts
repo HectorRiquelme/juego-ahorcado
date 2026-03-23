@@ -66,7 +66,7 @@ test.describe('Autenticación', () => {
   test('Cerrar sesión redirige a landing o auth', async ({ page }) => {
     await signIn(page, USER_A)
     await page.goto('/profile')
-    const signOutBtn = page.getByRole('button', { name: /salir/i })
+    const signOutBtn = page.getByRole('button', { name: /salir|cerrar sesión/i })
     await expect(signOutBtn).toBeVisible({ timeout: 8000 })
     await signOutBtn.click()
     await expect(page).toHaveURL(/\/|\/auth/, { timeout: 8000 })

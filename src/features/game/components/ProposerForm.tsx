@@ -15,6 +15,7 @@ interface ProposerFormProps {
 
 export default function ProposerForm({ onSubmit, maxPowerups, loading }: ProposerFormProps) {
   const [categories, setCategories] = useState<Category[]>([])
+  const [loadingCats, setLoadingCats] = useState(true)
   const [formData, setFormData] = useState<ProposerFormData>({
     word: '',
     categoryId: '',
@@ -26,6 +27,7 @@ export default function ProposerForm({ onSubmit, maxPowerups, loading }: Propose
   const [errors, setErrors] = useState<Partial<Record<keyof ProposerFormData, string>>>({})
 
   useEffect(() => {
+    setLoadingCats(true)
     supabase
       .from('categories')
       .select('*')
@@ -34,9 +36,10 @@ export default function ProposerForm({ onSubmit, maxPowerups, loading }: Propose
       .then(({ data, error }) => {
         if (error) {
           console.error('Error cargando categorías:', error)
-          return
+        } else {
+          setCategories(data ?? [])
         }
-        setCategories(data ?? [])
+        setLoadingCats(false)
       })
   }, [])
 
@@ -94,7 +97,7 @@ export default function ProposerForm({ onSubmit, maxPowerups, loading }: Propose
           onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
           className="bg-bg-surface border border-border rounded-xl px-4 py-3 text-text focus:outline-none focus:ring-2 focus:ring-primary"
         >
-          <option value="">Sin categoría</option>
+          <option value="">{loadingCats ? 'Cargando categorías...' : 'Sin categoría'}</option>
           {categories.map((cat) => (
             <option key={cat.id} value={cat.id}>
               {cat.emoji} {cat.name}

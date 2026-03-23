@@ -6,7 +6,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { useRealtime } from './useRealtime'
 import type { GameEvent } from './useRealtime'
 import type { PowerupType } from '@/types'
-import type { RevealLetterResult, ChatMessage } from '@/types/game'
+import type { ChatMessage } from '@/types/game'
 import {
   isWordComplete,
   normalizeWord,
@@ -54,40 +54,57 @@ export function useGameState({ roomCode, onChatMessage, onLetterResult, onTimeFr
   const onTimeFreezeRef = useRef(onTimeFreeze)
   onTimeFreezeRef.current = onTimeFreeze
 
+  // ─── Helpers para validar payloads de eventos ──────────────────────────
+
+  function safeString(val: unknown, fallback = ''): string {
+    return typeof val === 'string' ? val : fallback
+  }
+  function safeNumber(val: unknown, fallback = 0): number {
+    return typeof val === 'number' && isFinite(val) ? val : fallback
+  }
+  function safeBool(val: unknown, fallback = false): boolean {
+    return typeof val === 'boolean' ? val : fallback
+  }
+  function safeArray<T>(val: unknown, fallback: T[] = []): T[] {
+    return Array.isArray(val) ? val : fallback
+  }
+
   // ─── Manejar eventos entrantes del otro jugador ──────────────────────────
 
   const handleEvent = useCallback(
     (event: GameEvent) => {
+      const p = (event.payload ?? {}) as Record<string, unknown>
+
       switch (event.type) {
 
         // El proponente ingresó una letra → el desafiado actualiza su vista
         case 'letter_guessed': {
-          const { letter, correct } = event.payload as { letter: string; correct: boolean }
+          const letter = safeString(p.letter)
+          const correct = safeBool(p.correct)
+          if (!letter) break
           if (correct) {
             addCorrectLetter(letter)
           } else {
             addWrongLetter(letter)
           }
-          // Notificar a GamePage para mostrar mensaje en chat
           onLetterResult?.(letter, correct)
           break
         }
 
         // Comodín activado por el otro jugador
         case 'powerup_used': {
-          const { powerupType } = event.payload as { powerupType: PowerupType }
+          const powerupType = safeString(p.powerupType) as PowerupType
+          if (!powerupType) break
           updateRoundState({
             powerupsUsed: [...(gameState?.roundState?.powerupsUsed ?? []), powerupType],
           })
           if (powerupType === 'reveal_letter') {
-            const { letter } = event.payload as unknown as RevealLetterResult & { powerupType: string }
+            const letter = safeString(p.letter)
             if (letter) addCorrectLetter(letter)
           }
           if (powerupType === 'shield') {
             updateRoundState({ shieldActive: true })
           }
-          // BUG 16 FIX: time_freeze debe sincronizarse al oponente
-          // Se notifica via callback para que GamePage congele su timer
           if (powerupType === 'time_freeze') {
             onTimeFreezeRef.current?.()
           }
@@ -98,11 +115,9 @@ export function useGameState({ roomCode, onChatMessage, onLetterResult, onTimeFr
           const currentState = useGameStore.getState().gameState
           if (!currentState?.roundState) break
 
-          // El desafiado recibe el resultado y los puntos de ambos jugadores
-          const payload = event.payload as Record<string, unknown>
-          const roundResult = payload.result as 'won' | 'lost' | 'timeout'
-          const guesserScore = (payload.guesserScore as number) ?? 0
-          const proposerScore = (payload.proposerScore as number) ?? 0
+          const roundResult = safeString(p.result, 'lost') as 'won' | 'lost' | 'timeout'
+          const guesserScore = safeNumber(p.guesserScore)
+          const proposerScore = safeNumber(p.proposerScore)
 
           // Yo soy el desafiado → mis puntos son guesserScore
           const myRoundScore    = guesserScore
@@ -149,30 +164,24 @@ export function useGameState({ roomCode, onChatMessage, onLetterResult, onTimeFr
         }
 
         case 'round_created': {
-          // BUG 5 FIX: usamos los datos del evento en lugar de leer word_encoded de BD
-          const { roundId, roundNumber, wordLength, wordStructure, hint, categoryId,
-                  maxErrors, timerSeconds, powerupsAvailable } = event.payload as {
-            roundId: string
-            roundNumber: number
-            wordLength: number
-            wordStructure: number[]
-            hint: string | null
-            categoryId: string
-            maxErrors: number
-            timerSeconds: number | null
-            powerupsAvailable: string[]
-          }
+          const roundId = safeString(p.roundId)
+          const roundNumber = safeNumber(p.roundNumber, 1)
+          if (!roundId) break
           void loadRoundAsGuesser(roundId, roundNumber, {
-            wordLength, wordStructure, hint, categoryId,
-            maxErrors, timerSeconds, powerupsAvailable,
+            wordLength: safeNumber(p.wordLength),
+            wordStructure: safeArray<number>(p.wordStructure),
+            hint: typeof p.hint === 'string' ? p.hint : null,
+            categoryId: safeString(p.categoryId),
+            maxErrors: safeNumber(p.maxErrors, 6),
+            timerSeconds: typeof p.timerSeconds === 'number' ? p.timerSeconds : null,
+            powerupsAvailable: safeArray<string>(p.powerupsAvailable),
           })
           break
         }
 
-        // Mensaje de chat del otro jugador
         case 'chat_message': {
-          const { message } = event.payload as { message: ChatMessage }
-          onChatMessage?.(message)
+          const message = p.message as ChatMessage | undefined
+          if (message?.id && message?.text) onChatMessage?.(message)
           break
         }
       }

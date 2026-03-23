@@ -14,7 +14,7 @@ test.describe('Salas — crear y unirse con código', () => {
     await page.waitForURL(/\/rooms\/[A-Z0-9]+\/lobby/, { timeout: 15000 })
 
     // El código debe ser visible y tener 6 caracteres
-    const codeEl = page.locator('span.font-mono, span[class*="tracking-widest"]').first()
+    const codeEl = page.locator('span:has-text(/^[A-Z0-9]{6}$/)').first()
     await expect(codeEl).toBeVisible({ timeout: 8000 })
     const code = (await codeEl.textContent())?.trim() ?? ''
     expect(code).toMatch(/^[A-Z0-9]{6}$/)
@@ -44,7 +44,7 @@ test.describe('Salas — crear y unirse con código', () => {
     console.log(`[TEST] Código de sala creado: ${roomCode}`)
 
     // Verificar que el código aparece en pantalla
-    const codeEl = pageA.locator('span.font-mono, span[class*="tracking-widest"]').first()
+    const codeEl = pageA.locator('span:has-text(/^[A-Z0-9]{6}$/)').first()
     await expect(codeEl).toBeVisible()
     const displayedCode = (await codeEl.textContent())?.trim()
     expect(displayedCode).toBe(roomCode)

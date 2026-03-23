@@ -1,13 +1,26 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { useAuth } from '@/hooks/useAuth'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 export default function Navbar() {
   const { user, profile } = useAuthStore()
   const { signOut } = useAuth()
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  // Close menu on outside click
+  useEffect(() => {
+    if (!menuOpen) return
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [menuOpen])
 
   if (!user) return null
 
@@ -30,23 +43,60 @@ export default function Navbar() {
         </div>
 
         {/* Right */}
-        <div className="flex items-center gap-3">
-          {/* Avatar + menu */}
+        <div ref={menuRef} className="flex items-center gap-2">
+          {/* Hamburger — mobile only */}
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="md:hidden p-2 rounded-lg hover:bg-bg-surface2 transition-colors"
+            aria-label="Abrir menú"
+          >
+            <svg className="w-5 h-5 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              {menuOpen ? (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              )}
+            </svg>
+          </button>
+
+          {/* Avatar + dropdown — desktop */}
           <div className="relative">
             <button
               onClick={() => setMenuOpen(!menuOpen)}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-bg-surface2 transition-colors"
+              className="hidden md:flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-bg-surface2 transition-colors"
             >
               <div className="w-8 h-8 rounded-full bg-primary/30 flex items-center justify-center text-primary-light font-bold text-sm">
                 {(profile?.display_name || profile?.username || 'U').charAt(0).toUpperCase()}
               </div>
-              <span className="text-sm text-text-muted hidden sm:block">
+              <span className="text-sm text-text-muted">
                 {profile?.display_name ?? profile?.username ?? 'Usuario'}
               </span>
             </button>
 
             {menuOpen && (
               <div className="absolute right-0 top-full mt-2 w-48 glass-strong rounded-xl border border-border overflow-hidden z-50">
+                {/* Mobile-only nav links */}
+                <div className="md:hidden">
+                  <button
+                    onClick={() => { navigate('/home'); setMenuOpen(false) }}
+                    className="w-full px-4 py-3 text-left text-sm text-text hover:bg-bg-surface2 transition-colors"
+                  >
+                    Inicio
+                  </button>
+                  <button
+                    onClick={() => { navigate('/stats'); setMenuOpen(false) }}
+                    className="w-full px-4 py-3 text-left text-sm text-text hover:bg-bg-surface2 transition-colors"
+                  >
+                    Estadísticas
+                  </button>
+                  <button
+                    onClick={() => { navigate('/words'); setMenuOpen(false) }}
+                    className="w-full px-4 py-3 text-left text-sm text-text hover:bg-bg-surface2 transition-colors"
+                  >
+                    Palabras
+                  </button>
+                  <hr className="border-border" />
+                </div>
                 <button
                   onClick={() => { navigate('/profile'); setMenuOpen(false) }}
                   className="w-full px-4 py-3 text-left text-sm text-text hover:bg-bg-surface2 transition-colors"

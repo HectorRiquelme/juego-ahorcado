@@ -11,9 +11,17 @@ interface HangmanSVGProps {
  * Estética de trazo elegante — sin gore.
  * 6 partes: cabeza, cuerpo, brazo izq, brazo der, pierna izq, pierna der
  */
+// Colores de tailwind.config.js — centralizados para SVG inline
+const COLORS = {
+  gallows: '#2D2D44',   // border
+  accent: '#E94560',    // accent
+  primary: '#A78BFA',   // primary-light
+  text: '#F1F5F9',      // text
+} as const
+
 export default function HangmanSVG({ errors, maxErrors = 6 }: HangmanSVGProps) {
-  const strokeColor = errors >= maxErrors ? '#E94560' : '#A78BFA'
-  const figureColor = errors >= maxErrors ? '#E94560' : '#F1F5F9'
+  const strokeColor = errors >= maxErrors ? COLORS.accent : COLORS.primary
+  const figureColor = errors >= maxErrors ? COLORS.accent : COLORS.text
 
   return (
     <svg
@@ -25,13 +33,13 @@ export default function HangmanSVG({ errors, maxErrors = 6 }: HangmanSVGProps) {
     >
       {/* Horca — siempre visible */}
       {/* Base */}
-      <line x1="20" y1="210" x2="100" y2="210" stroke="#2D2D44" strokeWidth="4" />
+      <line x1="20" y1="210" x2="100" y2="210" stroke={COLORS.gallows} strokeWidth="4" />
       {/* Poste vertical */}
-      <line x1="60" y1="210" x2="60" y2="20" stroke="#2D2D44" strokeWidth="4" />
+      <line x1="60" y1="210" x2="60" y2="20" stroke={COLORS.gallows} strokeWidth="4" />
       {/* Viga horizontal */}
-      <line x1="60" y1="20" x2="130" y2="20" stroke="#2D2D44" strokeWidth="4" />
+      <line x1="60" y1="20" x2="130" y2="20" stroke={COLORS.gallows} strokeWidth="4" />
       {/* Cuerda */}
-      <line x1="130" y1="20" x2="130" y2="45" stroke="#2D2D44" strokeWidth="3" strokeDasharray="4 2" />
+      <line x1="130" y1="20" x2="130" y2="45" stroke={COLORS.gallows} strokeWidth="3" strokeDasharray="4 2" />
 
       {/* Cabeza */}
       {errors >= 1 && (
@@ -127,12 +135,12 @@ export default function HangmanSVG({ errors, maxErrors = 6 }: HangmanSVGProps) {
             initial="hidden"
             animate="visible"
           >
-            <line x1="124" y1="56" x2="127" y2="59" stroke="#E94560" strokeWidth="1.5" />
-            <line x1="127" y1="56" x2="124" y2="59" stroke="#E94560" strokeWidth="1.5" />
-            <line x1="133" y1="56" x2="136" y2="59" stroke="#E94560" strokeWidth="1.5" />
-            <line x1="136" y1="56" x2="133" y2="59" stroke="#E94560" strokeWidth="1.5" />
+            <line x1="124" y1="56" x2="127" y2="59" stroke={COLORS.accent} strokeWidth="1.5" />
+            <line x1="127" y1="56" x2="124" y2="59" stroke={COLORS.accent} strokeWidth="1.5" />
+            <line x1="133" y1="56" x2="136" y2="59" stroke={COLORS.accent} strokeWidth="1.5" />
+            <line x1="136" y1="56" x2="133" y2="59" stroke={COLORS.accent} strokeWidth="1.5" />
             {/* Boca triste */}
-            <path d="M 125 66 Q 130 62 135 66" stroke="#E94560" strokeWidth="1.5" />
+            <path d="M 125 66 Q 130 62 135 66" stroke={COLORS.accent} strokeWidth="1.5" />
           </motion.g>
         </>
       )}

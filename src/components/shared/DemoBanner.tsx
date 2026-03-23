@@ -18,6 +18,7 @@ export default function DemoBanner() {
       </div>
       <button
         onClick={() => setDismissed(true)}
+        aria-label="Cerrar banner de modo demo"
         className="text-text-subtle hover:text-text text-xs px-2 py-1 rounded hover:bg-white/10 transition-colors shrink-0"
       >
         Cerrar

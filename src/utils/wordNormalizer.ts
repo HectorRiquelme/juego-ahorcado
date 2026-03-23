@@ -70,6 +70,7 @@ export function buildDisplayWord(
  * Para el comodín show_structure
  */
 export function getWordStructure(word: string): number[] {
+  if (!word || typeof word !== 'string') return []
   return word.split(' ').map((token) => token.length)
 }
 
@@ -77,7 +78,12 @@ export function getWordStructure(word: string): number[] {
  * Codifica la palabra en base64 (no es seguridad real, solo ofuscación para RLS)
  */
 export function encodeWord(word: string): string {
-  return btoa(unescape(encodeURIComponent(word)))
+  try {
+    return btoa(unescape(encodeURIComponent(word)))
+  } catch {
+    console.error('encodeWord failed for:', word)
+    return btoa(word.normalize('NFD').replace(/[\u0300-\u036f]/g, ''))
+  }
 }
 
 /**
@@ -86,7 +92,8 @@ export function encodeWord(word: string): string {
 export function decodeWord(encoded: string): string {
   try {
     return decodeURIComponent(escape(atob(encoded)))
-  } catch {
+  } catch (err) {
+    console.error('decodeWord failed:', err)
     return ''
   }
 }
@@ -96,7 +103,8 @@ export function decodeWord(encoded: string): string {
  */
 export function isWordComplete(word: string, correctLetters: string[]): boolean {
   const unique = getUniqueLettersToGuess(word)
-  return unique.every((letter) => correctLetters.includes(letter))
+  const normalized = correctLetters.map((l) => l.toUpperCase())
+  return unique.every((letter) => normalized.includes(letter))
 }
 
 /**

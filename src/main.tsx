@@ -9,16 +9,16 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
       <App />
+      {/* Colores alineados con tailwind.config.js tokens */}
       <Toaster
         position="top-center"
         toastOptions={{
           duration: 3000,
+          className: 'bg-bg-surface text-text border border-border rounded-xl text-sm',
           style: {
-            background: '#1A1A2E',
-            color: '#F1F5F9',
-            border: '1px solid #2D2D44',
-            borderRadius: '12px',
-            fontSize: '14px',
+            background: undefined,
+            color: undefined,
+            border: undefined,
           },
           success: {
             iconTheme: { primary: '#10B981', secondary: '#F1F5F9' },

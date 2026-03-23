@@ -3,6 +3,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { IS_DEMO, DEMO_PROFILE } from '@/lib/demo'
+import ErrorBoundary from '@/components/shared/ErrorBoundary'
 
 // Pages
 import LandingPage from '@/pages/LandingPage'
@@ -79,6 +80,7 @@ export default function App() {
   return (
     <>
       {IS_DEMO && <DemoBanner />}
+      <ErrorBoundary>
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/auth" element={<AuthPage />} />
@@ -99,6 +101,7 @@ export default function App() {
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </ErrorBoundary>
     </>
   )
 }

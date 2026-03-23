@@ -38,7 +38,7 @@ export default function Navbar() {
               className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-bg-surface2 transition-colors"
             >
               <div className="w-8 h-8 rounded-full bg-primary/30 flex items-center justify-center text-primary-light font-bold text-sm">
-                {(profile?.display_name ?? profile?.username ?? 'U')[0].toUpperCase()}
+                {(profile?.display_name || profile?.username || 'U').charAt(0).toUpperCase()}
               </div>
               <span className="text-sm text-text-muted hidden sm:block">
                 {profile?.display_name ?? profile?.username ?? 'Usuario'}

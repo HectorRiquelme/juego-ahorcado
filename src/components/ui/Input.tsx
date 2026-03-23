@@ -25,6 +25,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           )}
           <input
             ref={ref}
+            aria-invalid={!!error || undefined}
             className={cn(
               'w-full bg-bg-surface border border-border rounded-xl px-4 py-3 text-text placeholder:text-text-subtle',
               'focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent',

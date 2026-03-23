@@ -15,7 +15,11 @@ export function useProfile() {
       .eq('id', user.id)
       .single()
       .then(({ data, error }) => {
-        if (!error && data) setProfile(data)
+        if (error) {
+          console.error('Error loading profile:', error)
+          return
+        }
+        if (data) setProfile(data)
       })
   }, [user, profile, setProfile])
 

@@ -59,9 +59,15 @@ export default function LobbyPage() {
 
     const loadRoom = async () => {
       if (!room) {
-        const r = await getRoomByCode(code)
-        if (!r) { navigate('/home'); return }
-        setRoom(r)
+        try {
+          const r = await getRoomByCode(code)
+          if (!r) { navigate('/home'); return }
+          setRoom(r)
+        } catch (err) {
+          console.error('Error loading room:', err)
+          toast.error('Error cargando sala')
+          navigate('/home')
+        }
       }
     }
     loadRoom()

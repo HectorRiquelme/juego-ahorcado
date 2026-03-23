@@ -9,8 +9,6 @@ interface WordDisplayProps {
   wordLength: number
   correctLetters: string[]
   result?: 'won' | 'lost' | null
-  /** Palabra codificada para construir los guiones cuando no tenemos la palabra */
-  encodedWord?: string
 }
 
 export default function WordDisplay({

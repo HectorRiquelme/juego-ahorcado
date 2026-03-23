@@ -47,7 +47,8 @@ export function useAuth() {
       }
 
       // Crear stats iniciales (el trigger lo hace también, esto es por seguridad)
-      await db.from('user_stats').insert({ user_id: data.user.id }).maybeSingle()
+      const { error: statsError } = await db.from('user_stats').insert({ user_id: data.user.id }).maybeSingle()
+      if (statsError) console.error('Error creating initial user_stats:', statsError)
     }
 
     return data

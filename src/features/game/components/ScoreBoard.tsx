@@ -8,8 +8,6 @@ interface ScoreBoardProps {
   opponentScore: number
   currentRound: number
   totalRounds: number
-  myAvatar?: string | null
-  opponentAvatar?: string | null
 }
 
 export default function ScoreBoard({

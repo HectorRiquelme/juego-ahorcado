@@ -1,3 +1,4 @@
+import { useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { KEYBOARD_ROWS } from '@/types/game'
 import type { KeyStatus } from '@/types/game'
@@ -18,6 +19,20 @@ export default function Keyboard({
   onLetterPress,
   disabled = false,
 }: KeyboardProps) {
+  // Soporte de teclado físico
+  const allLetters = KEYBOARD_ROWS.flat() as unknown as string[]
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (disabled) return
+    const letter = e.key.toUpperCase()
+    if (!allLetters.includes(letter)) return
+    if (correctLetters.includes(letter) || wrongLetters.includes(letter) || eliminatedLetters.includes(letter)) return
+    onLetterPress(letter)
+  }, [disabled, correctLetters, wrongLetters, eliminatedLetters, onLetterPress, allLetters])
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [handleKeyDown])
   const getKeyStatus = (letter: string): KeyStatus => {
     if (correctLetters.includes(letter)) return 'correct'
     if (wrongLetters.includes(letter)) return 'wrong'

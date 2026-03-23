@@ -593,6 +593,85 @@ CREATE POLICY "snapshots: insert own"
   WITH CHECK (auth.uid() = player_id);
 
 -- ============================================================
+-- FUNCIONES RPC
+-- ============================================================
+
+-- CRITICO-01: Append atómico de letras (evita race condition SELECT+UPDATE)
+CREATE OR REPLACE FUNCTION append_letter_to_round(
+  p_round_id UUID,
+  p_letter TEXT,
+  p_correct BOOLEAN,
+  p_shield_active BOOLEAN DEFAULT FALSE
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  IF p_correct THEN
+    UPDATE rounds
+    SET correct_letters = array_append(correct_letters, p_letter),
+        updated_at = NOW()
+    WHERE id = p_round_id;
+  ELSE
+    IF p_shield_active THEN
+      -- Escudo activo: agregar a wrong_letters pero NO incrementar errors_count
+      UPDATE rounds
+      SET wrong_letters = array_append(wrong_letters, p_letter),
+          updated_at = NOW()
+      WHERE id = p_round_id;
+    ELSE
+      UPDATE rounds
+      SET wrong_letters = array_append(wrong_letters, p_letter),
+          errors_count = errors_count + 1,
+          updated_at = NOW()
+      WHERE id = p_round_id;
+    END IF;
+  END IF;
+END;
+$$;
+
+-- CRITICO-04: Función segura que oculta word_encoded al guesser
+CREATE OR REPLACE FUNCTION get_round_safe(p_round_id UUID)
+RETURNS TABLE (
+  id UUID,
+  match_id UUID,
+  round_number INT,
+  proposer_id UUID,
+  guesser_id UUID,
+  category_id UUID,
+  word_encoded TEXT,  -- NULL si el caller es el guesser
+  hint TEXT,
+  hint_extra TEXT,
+  status match_status,
+  result round_result,
+  correct_letters TEXT[],
+  wrong_letters TEXT[],
+  max_errors INT,
+  errors_count INT,
+  powerups_available TEXT[],
+  timer_seconds INT,
+  score INT
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    r.id, r.match_id, r.round_number, r.proposer_id, r.guesser_id,
+    r.category_id,
+    CASE WHEN auth.uid() = r.guesser_id THEN NULL ELSE r.word_encoded END,
+    r.hint, r.hint_extra, r.status, r.result,
+    r.correct_letters, r.wrong_letters, r.max_errors, r.errors_count,
+    r.powerups_available, r.timer_seconds, r.score
+  FROM rounds r
+  WHERE r.id = p_round_id
+    AND (auth.uid() = r.proposer_id OR auth.uid() = r.guesser_id);
+END;
+$$;
+
+-- ============================================================
 -- SEEDS — Categorías del sistema
 -- ============================================================
 

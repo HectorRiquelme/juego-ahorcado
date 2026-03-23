@@ -117,8 +117,6 @@ export async function submitLetterGuess(params: {
   isCorrect: boolean
   isShieldActive: boolean
 }): Promise<void> {
-  const now = new Date().toISOString()
-
   const eventInsert: Omit<RoundEvent, 'id' | 'created_at'> = {
     round_id: params.roundId,
     player_id: params.playerId,
@@ -131,26 +129,16 @@ export async function submitLetterGuess(params: {
   }
   await db.from('round_events').insert(eventInsert)
 
-  const { data: rawRound } = await supabase
-    .from('rounds').select('correct_letters, wrong_letters, errors_count').eq('id', params.roundId).single()
-  const round = rawRound as { correct_letters: string[]; wrong_letters: string[]; errors_count: number } | null
-  if (!round) {
-    console.error('submitLetterGuess: round not found', params.roundId)
-    return
-  }
+  // CRITICO-01 FIX: usar RPC atómico en vez de SELECT+UPDATE
+  const { error: rpcError } = await db.rpc('append_letter_to_round', {
+    p_round_id: params.roundId,
+    p_letter: params.letter,
+    p_correct: params.isCorrect,
+    p_shield_active: params.isShieldActive && !params.isCorrect,
+  })
 
-  if (params.isCorrect) {
-    await db.from('rounds').update({
-      correct_letters: [...round.correct_letters, params.letter],
-      updated_at: now,
-    }).eq('id', params.roundId)
-  } else {
-    const actualError = !params.isShieldActive
-    await db.from('rounds').update({
-      wrong_letters: [...round.wrong_letters, params.letter],
-      errors_count: actualError ? round.errors_count + 1 : round.errors_count,
-      updated_at: now,
-    }).eq('id', params.roundId)
+  if (rpcError) {
+    console.error('append_letter_to_round failed:', rpcError)
   }
 }
 

@@ -65,6 +65,7 @@ export default function PowerupBar({
     <div className="flex flex-wrap justify-center gap-2">
       {available.map((type) => {
         const info = POWERUP_INFO[type]
+        if (!info) return null
         const isUsed = used.includes(type)
         const isShield = type === 'shield'
         const isActive = isShield && shieldActive

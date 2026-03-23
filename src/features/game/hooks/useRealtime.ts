@@ -88,14 +88,20 @@ export function useRealtime({
 
     channel.subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
-        await channel.track({ user_id: userId, online_at: new Date().toISOString() })
+        try {
+          await channel.track({ user_id: userId, online_at: new Date().toISOString() })
+        } catch (err) {
+          console.error('Realtime track failed:', err)
+        }
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        console.error('Realtime channel error:', status)
       }
     })
 
     channelRef.current = channel
 
     return () => {
-      channel.unsubscribe()
+      try { channel.unsubscribe() } catch { /* cleanup */ }
       channelRef.current = null
     }
     // Solo roomCode y userId crean/destruyen el canal real

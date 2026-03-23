@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/utils/cn'
 
@@ -10,6 +11,19 @@ interface ModalProps {
 }
 
 export default function Modal({ open, onClose, title, children, className }: ModalProps) {
+  const panelRef = useRef<HTMLDivElement>(null)
+
+  // Focus trap: focus panel on open, close on Escape
+  useEffect(() => {
+    if (!open) return
+    panelRef.current?.focus()
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose?.()
+    }
+    document.addEventListener('keydown', handleKey)
+    return () => document.removeEventListener('keydown', handleKey)
+  }, [open, onClose])
+
   return (
     <AnimatePresence>
       {open && (
@@ -29,8 +43,13 @@ export default function Modal({ open, onClose, title, children, className }: Mod
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+            ref={panelRef}
+            tabIndex={-1}
+            role="dialog"
+            aria-modal="true"
+            aria-label={title}
             className={cn(
-              'relative z-10 w-full max-w-md glass-strong rounded-2xl p-6',
+              'relative z-10 w-full max-w-md glass-strong rounded-2xl p-6 outline-none',
               className
             )}
           >

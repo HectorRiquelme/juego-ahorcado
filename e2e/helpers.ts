@@ -1,10 +1,10 @@
 import type { Page } from '@playwright/test'
 import { createClient } from '@supabase/supabase-js'
 
-const SUPABASE_URL = 'https://hgauhpizevbqybxwhlks.supabase.co'
-const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhnYXVocGl6ZXZicXlieHdobGtzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3NTk0MjYsImV4cCI6MjA4OTMzNTQyNn0.whDMD7kQnvQf8T0s-wCtSI9VoJratGgnUbyCKCI_PDk'
-// service_role solo para tests — nunca va al código de la app
-const SUPABASE_SERVICE = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhnYXVocGl6ZXZicXlieHdobGtzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Mzc1OTQyNiwiZXhwIjoyMDg5MzM1NDI2fQ.K15QOopH6CX1-weXYg9CawWpdsiVCzblvBbiKfBXXQ4'
+const SUPABASE_URL = process.env.E2E_SUPABASE_URL ?? 'https://hgauhpizevbqybxwhlks.supabase.co'
+const SUPABASE_ANON = process.env.E2E_SUPABASE_ANON_KEY ?? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhnYXVocGl6ZXZicXlieHdobGtzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3NTk0MjYsImV4cCI6MjA4OTMzNTQyNn0.whDMD7kQnvQf8T0s-wCtSI9VoJratGgnUbyCKCI_PDk'
+// service_role solo para tests — idealmente usar env var E2E_SUPABASE_SERVICE_KEY
+const SUPABASE_SERVICE = process.env.E2E_SUPABASE_SERVICE_KEY ?? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhnYXVocGl6ZXZicXlieHdobGtzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Mzc1OTQyNiwiZXhwIjoyMDg5MzM1NDI2fQ.K15QOopH6CX1-weXYg9CawWpdsiVCzblvBbiKfBXXQ4'
 
 /** Cliente Supabase con anon key (igual que la app) */
 export const sbAnon = createClient(SUPABASE_URL, SUPABASE_ANON)

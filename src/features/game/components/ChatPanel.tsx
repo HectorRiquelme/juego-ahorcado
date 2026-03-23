@@ -187,7 +187,7 @@ function ChatBubble({ msg, isOwn }: { msg: ChatMessage; isOwn: boolean }) {
             : 'bg-warning/15 border-warning/40 rounded-bl-sm'
         )}>
           {!isOwn && (
-            <p className="text-[10px] text-text-subtle mb-0.5 font-medium">{msg.senderName}</p>
+            <p className="text-[10px] text-text-subtle mb-0.5 font-medium">{msg.senderName || 'Jugador'}</p>
           )}
           <p className="text-sm font-bold text-text">
             <span className="text-warning mr-1">🔡</span>
@@ -206,7 +206,7 @@ function ChatBubble({ msg, isOwn }: { msg: ChatMessage; isOwn: boolean }) {
       className={cn('flex flex-col', isOwn ? 'items-end' : 'items-start')}
     >
       {!isOwn && (
-        <p className="text-[10px] text-text-subtle mb-0.5 ml-3">{msg.senderName}</p>
+        <p className="text-[10px] text-text-subtle mb-0.5 ml-3">{msg.senderName || 'Jugador'}</p>
       )}
       <div className={cn(
         'px-3 py-2 rounded-2xl max-w-[85%] text-sm',

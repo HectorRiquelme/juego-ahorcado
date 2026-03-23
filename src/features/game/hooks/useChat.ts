@@ -35,12 +35,15 @@ export function useChat({ userId, userName, sendEvent, welcomeMessage }: UseChat
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
+  const MAX_MESSAGES = 200
+
   /** Agrega un mensaje recibido del otro jugador (viene por Realtime) */
   const receiveMessage = useCallback((msg: ChatMessage) => {
     setMessages((prev) => {
       // Evitar duplicados por si llega dos veces
       if (prev.some((m) => m.id === msg.id)) return prev
-      return [...prev, msg]
+      const next = [...prev, msg]
+      return next.length > MAX_MESSAGES ? next.slice(-MAX_MESSAGES) : next
     })
   }, [])
 

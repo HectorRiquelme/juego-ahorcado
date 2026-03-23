@@ -36,7 +36,7 @@ export function getUniqueLettersToGuess(word: string): string[] {
   const normalized = normalizeWord(word)
   const unique = new Set<string>()
   for (const ch of normalized) {
-    if (/[A-ZÑ]/.test(ch)) {
+    if (/[A-ZÑ]/.test(ch)) { // normalizeWord ya mapea ÁÉÍÓÚÜ → AEIOU
       unique.add(ch)
     }
   }

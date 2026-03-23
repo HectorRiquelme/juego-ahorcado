@@ -42,6 +42,10 @@ export function usePowerups(options: UsePowerupsOptions) {
       }
 
       const word = decodeWord(options.wordEncoded)
+      if (!word && type !== 'extra_hint' && type !== 'shield' && type !== 'time_freeze') {
+        toast.error('Error: no se pudo decodificar la palabra')
+        return
+      }
 
       try {
         switch (type) {

@@ -94,12 +94,14 @@ export function useGameState({ roomCode, onChatMessage, onLetterResult, onTimeFr
         }
 
         case 'round_ended': {
+          const currentState = useGameStore.getState().gameState
+          if (!currentState?.roundState) break
+
           // El desafiado recibe el resultado y los puntos de ambos jugadores
-          const { result: roundResult, guesserScore, proposerScore } = event.payload as {
-            result: 'won' | 'lost' | 'timeout'
-            guesserScore: number
-            proposerScore: number
-          }
+          const payload = event.payload as Record<string, unknown>
+          const roundResult = payload.result as 'won' | 'lost' | 'timeout'
+          const guesserScore = (payload.guesserScore as number) ?? 0
+          const proposerScore = (payload.proposerScore as number) ?? 0
 
           // Yo soy el desafiado → mis puntos son guesserScore
           const myRoundScore    = guesserScore

@@ -48,7 +48,8 @@ export default function RoundEndPage() {
       .select('word_encoded')
       .eq('id', roundState.roundId)
       .single()
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) { console.error('Error fetching word for reveal:', error); return }
         const typedData = data as { word_encoded: string } | null
         if (typedData) setRevealedWord(decodeWord(typedData.word_encoded))
       })

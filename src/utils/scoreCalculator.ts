@@ -18,9 +18,10 @@ interface ScoreParams {
 export function calculateRoundScore(params: ScoreParams): number {
   if (!params.won) return 0
 
+  const safeSecs = Math.max(0, params.secondsTaken || 0)
   const speedBonus = params.timerSeconds
-    ? Math.max(0, SCORE_SPEED_BONUS_MAX - Math.floor(params.secondsTaken / 2))
-    : Math.max(0, SCORE_SPEED_BONUS_MAX - Math.floor(params.secondsTaken / 5))
+    ? Math.max(0, SCORE_SPEED_BONUS_MAX - Math.floor(safeSecs / 2))
+    : Math.max(0, SCORE_SPEED_BONUS_MAX - Math.floor(safeSecs / 5))
 
   const score =
     SCORE_BASE +
@@ -34,7 +35,9 @@ export function calculateRoundScore(params: ScoreParams): number {
 
 /** Calcula precisión de letras como porcentaje */
 export function calculateLetterAccuracy(correct: number, wrong: number): number {
-  const total = correct + wrong
+  const c = Math.max(0, correct || 0)
+  const w = Math.max(0, wrong || 0)
+  const total = c + w
   if (total === 0) return 100
-  return Math.round((correct / total) * 100)
+  return Math.round((c / total) * 100)
 }

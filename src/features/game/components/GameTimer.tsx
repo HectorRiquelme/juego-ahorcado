@@ -17,13 +17,15 @@ export default function GameTimer({
   onTimeUp,
   active,
 }: GameTimerProps) {
-  const [timeLeft, setTimeLeft] = useState(totalSeconds + extraSeconds)
+  const safeTotal = Math.max(0, totalSeconds)
+  const safeExtra = Math.max(0, extraSeconds)
+  const [timeLeft, setTimeLeft] = useState(safeTotal + safeExtra)
   const onTimeUpRef = useRef(onTimeUp)
   onTimeUpRef.current = onTimeUp
 
   useEffect(() => {
-    setTimeLeft(totalSeconds + extraSeconds)
-  }, [extraSeconds, totalSeconds])
+    setTimeLeft(safeTotal + safeExtra)
+  }, [safeExtra, safeTotal])
 
   useEffect(() => {
     if (!active || frozen) return
@@ -42,7 +44,7 @@ export default function GameTimer({
     return () => clearInterval(interval)
   }, [active, frozen])
 
-  const total = totalSeconds + extraSeconds
+  const total = safeTotal + safeExtra
   const ratio = total > 0 ? timeLeft / total : 0
   const isUrgent = timeLeft <= 10
 

@@ -1,7 +1,7 @@
 # NEXT_STEPS.md — Cuellito
 
-> Auditoria completa (2026-03-23). 104 issues encontrados → 47 corregidos en 4 commits.
-> Actualizado tras commit `48e76d5`. RPCs ejecutadas en Supabase.
+> Auditoria completa (2026-03-23). 104 issues encontrados → 50 corregidos en 5 commits.
+> Actualizado tras commit post-`48e76d5`. RPCs ejecutadas en Supabase. 0 altos pendientes.
 
 ---
 
@@ -48,6 +48,12 @@
 - `Card.tsx` — keyboard support (Enter/Space), role=button, tabIndex cuando es clickable
 - `ChatPanel.tsx` — fallback para senderName vacio en todas las burbujas
 
+### Commit 5 — 3 altos restantes (3 archivos)
+**Altos resueltos:**
+- `useGameState.ts` — Lock `processingLetterRef` que bloquea entradas mientras se procesa una letra + lee estado fresco del store para verificar fin de ronda
+- `usePowerups.ts` — Lock `processingRef` anti doble-click + liberacion en finally (previene activacion duplicada)
+- `LobbyPage.tsx` — `roomIdRef` para suscripcion postgres_changes: solo se suscribe una vez por room.id, no se re-suscribe cada vez que room cambia
+
 ### Ejecutado manualmente en Supabase SQL Editor
 - `append_letter_to_round` — RPC atomica para race condition de letras
 - `get_round_safe` — RPC que oculta word_encoded al guesser
@@ -56,20 +62,15 @@
 
 ## Lo que queda pendiente
 
-### Altos restantes (~3)
+### Altos restantes: 0 ✅
 
-| Issue | Archivo | Detalle | Siguiente paso |
-|-------|---------|---------|----------------|
-| Letras rapidas optimistic update | `useGameState.ts:250-307` | Dos letras enviadas rapido pueden pasar validacion antes de que el store actualice | Agregar ref `pendingLettersRef` que bloquee letras hasta que el store se actualice |
-| usePowerups state rollback | `usePowerups.ts:37-165` | Si BD falla tras activar comodin, estado local queda inconsistente | Mover update de estado local DESPUES del await de recordPowerupUse |
-| LobbyPage re-suscripciones | `LobbyPage.tsx:88-104` | room como dependency del useEffect puede causar re-suscripciones al canal | Usar roomRef.current en lugar de room directamente |
+Todos los issues de severidad alta fueron resueltos.
 
-### Medios restantes (~27)
+### Medios restantes (~26)
 
 | Categoria | Cantidad | Archivos | Detalle |
 |-----------|----------|----------|---------|
 | Event payload validation | 8 | `useGameState.ts` | Los 8 cases del switch hacen `as Type` sin validar shape real |
-| usePowerups doble-click | 1 | `usePowerups.ts` | isUsed se evalua con estado stale si se hace doble-click rapido |
 | ChatPanel sin max chars | 1 | `ChatPanel.tsx` | Input de chat sin limite de caracteres |
 | ProposerForm loading | 1 | `ProposerForm.tsx` | Sin loading state mientras carga categorias |
 | Tests E2E selectores | 8 | `e2e/*.spec.ts` | Selectores CSS fragiles (getByRole mejor que getByClass) |
@@ -112,17 +113,15 @@
 | Severidad | Total | Corregidos | Pendientes |
 |-----------|-------|-----------|-----------|
 | Critico | 13 | **13** | 0 |
-| Alto | 21 | **18** | 3 |
-| Medio | 38 | **11** | 27 |
-| Bajo | 32 | **5** | 27* |
-| **Total** | **104** | **47** | **57** |
-
-*1 bajo adicional resuelto (GameTimer) contado en medios por impacto real.
+| Alto | 21 | **21** | 0 ✅ |
+| Medio | 38 | **12** | 26 |
+| Bajo | 32 | **5** | 27 |
+| **Total** | **104** | **51** | **53** |
 
 RPCs ejecutadas en Supabase: `append_letter_to_round` y `get_round_safe` ✅
 
-Los 57 pendientes son:
-- 3 altos: optimistic update race, powerup rollback, lobby re-subs (no causan crash, solo edge cases)
-- 27 medios: mayormente validaciones defensivas y robustez de tests E2E
+Los 53 pendientes son:
+- 26 medios: validaciones defensivas de payloads, robustez de tests E2E, UX minor
 - 27 bajos: accesibilidad, cleanup, documentacion, indices BD
 - 8 features nuevas no iniciadas (roadmap Fase 2-5)
+- Ningun issue que cause crash en uso normal

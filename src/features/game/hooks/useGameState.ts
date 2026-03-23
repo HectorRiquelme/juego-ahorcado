@@ -46,6 +46,7 @@ export function useGameState({ roomCode, onChatMessage, onLetterResult, onTimeFr
   const navigate = useNavigate()
   const roundStartTime = useRef<number>(Date.now())
   const shieldConsumedRef = useRef(false)
+  const processingLetterRef = useRef(false)
 
   const myId = user?.id ?? ''
 
@@ -251,62 +252,71 @@ export function useGameState({ roomCode, onChatMessage, onLetterResult, onTimeFr
 
   const guessLetter = useCallback(
     async (letter: string) => {
-      const round = gameState?.roundState
-      // Solo el PROPONENTE puede ingresar letras ahora
-      if (!round || !round.isProposer || round.result) return
-      if (round.correctLetters.includes(letter) || round.wrongLetters.includes(letter)) return
+      // Bloquear si ya se está procesando otra letra (previene race condition)
+      if (processingLetterRef.current) return
+      processingLetterRef.current = true
 
-      // El proponente conoce la palabra real
-      const wordReal = round.word ?? ''
-      const wordNorm = normalizeWord(wordReal)
-      const isCorrect = wordNorm.includes(letter)
-
-      const isShieldActive = round.shieldActive && !shieldConsumedRef.current
-
-      // Actualizar estado local (optimistic)
-      if (isCorrect) {
-        addCorrectLetter(letter)
-      } else {
-        addWrongLetter(letter)
-        if (isShieldActive) {
-          shieldConsumedRef.current = true
-          updateRoundState({ shieldActive: false })
-        }
-      }
-
-      // Persistir en DB
       try {
-        await submitLetterGuess({
-          roundId: round.roundId,
-          matchId: gameState!.matchId,
-          playerId: myId,
-          letter,
-          isCorrect,
-          isShieldActive,
-        })
-      } catch (err) {
-        console.error('Error persistiendo letra:', err)
-      }
+        const round = useGameStore.getState().gameState?.roundState
+        // Solo el PROPONENTE puede ingresar letras ahora
+        if (!round || !round.isProposer || round.result) return
+        if (round.correctLetters.includes(letter) || round.wrongLetters.includes(letter)) return
 
-      // Notificar al desafiado vía Realtime
-      sendEvent('letter_guessed', { letter, correct: isCorrect })
+        // El proponente conoce la palabra real
+        const wordReal = round.word ?? ''
+        const wordNorm = normalizeWord(wordReal)
+        const isCorrect = wordNorm.includes(letter)
 
-      // Verificar fin de ronda
-      const updatedCorrect = isCorrect
-        ? [...round.correctLetters, letter]
-        : round.correctLetters
-      const errorsCount = isCorrect
-        ? round.errorsCount
-        : isShieldActive
-        ? round.errorsCount
-        : round.errorsCount + 1
+        const isShieldActive = round.shieldActive && !shieldConsumedRef.current
 
-      const won = isWordComplete(wordReal, updatedCorrect)
-      const lost = errorsCount >= round.maxErrors
+        // Actualizar estado local (optimistic)
+        if (isCorrect) {
+          addCorrectLetter(letter)
+        } else {
+          addWrongLetter(letter)
+          if (isShieldActive) {
+            shieldConsumedRef.current = true
+            updateRoundState({ shieldActive: false })
+          }
+        }
 
-      if (won || lost) {
-        const secondsTaken = Math.floor((Date.now() - roundStartTime.current) / 1000)
-        await handleRoundEnd(won ? 'won' : 'lost', secondsTaken, wordReal)
+        // Persistir en DB
+        try {
+          await submitLetterGuess({
+            roundId: round.roundId,
+            matchId: gameState!.matchId,
+            playerId: myId,
+            letter,
+            isCorrect,
+            isShieldActive,
+          })
+        } catch (err) {
+          console.error('Error persistiendo letra:', err)
+        }
+
+        // Notificar al desafiado vía Realtime
+        sendEvent('letter_guessed', { letter, correct: isCorrect })
+
+        // Verificar fin de ronda — leer estado fresco del store
+        const freshRound = useGameStore.getState().gameState?.roundState
+        const updatedCorrect = freshRound?.correctLetters ?? (isCorrect
+          ? [...round.correctLetters, letter]
+          : round.correctLetters)
+        const errorsCount = freshRound?.errorsCount ?? (isCorrect
+          ? round.errorsCount
+          : isShieldActive
+          ? round.errorsCount
+          : round.errorsCount + 1)
+
+        const won = isWordComplete(wordReal, updatedCorrect)
+        const lost = errorsCount >= round.maxErrors
+
+        if (won || lost) {
+          const secondsTaken = Math.floor((Date.now() - roundStartTime.current) / 1000)
+          await handleRoundEnd(won ? 'won' : 'lost', secondsTaken, wordReal)
+        }
+      } finally {
+        processingLetterRef.current = false
       }
     },
     [gameState, myId, sendEvent, addCorrectLetter, addWrongLetter, updateRoundState]

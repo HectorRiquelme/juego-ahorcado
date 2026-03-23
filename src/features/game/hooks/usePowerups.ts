@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { PowerupType } from '@/types'
 import type { RevealLetterResult, EliminateWrongResult } from '@/types/game'
@@ -29,6 +29,8 @@ interface UsePowerupsOptions {
 }
 
 export function usePowerups(options: UsePowerupsOptions) {
+  const processingRef = useRef(false)
+
   const isUsed = useCallback(
     (type: PowerupType) => options.powerupsUsed.includes(type),
     [options.powerupsUsed]
@@ -36,10 +38,13 @@ export function usePowerups(options: UsePowerupsOptions) {
 
   const usePowerup = useCallback(
     async (type: PowerupType) => {
+      // Lock anti doble-click
+      if (processingRef.current) return
       if (isUsed(type)) {
         toast.error('Ya usaste ese comodín en esta ronda')
         return
       }
+      processingRef.current = true
 
       const word = decodeWord(options.wordEncoded)
       if (!word && type !== 'extra_hint' && type !== 'shield' && type !== 'time_freeze') {
@@ -163,6 +168,8 @@ export function usePowerups(options: UsePowerupsOptions) {
       } catch (error) {
         console.error('Error using powerup:', error)
         toast.error('No se pudo usar el comodín')
+      } finally {
+        processingRef.current = false
       }
     },
     [isUsed, options]

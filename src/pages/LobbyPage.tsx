@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { supabase, db } from '@/lib/supabase'
@@ -91,8 +91,14 @@ export default function LobbyPage() {
   }, [room, hostProfile, guestProfile, setHostProfile, setGuestProfile])
 
   // Suscripción a cambios de la sala (para detectar cuando entra el guest)
+  // Usar ref del room.id para evitar re-suscripciones cada vez que room cambia
+  const roomIdRef = useRef<string | null>(null)
+
   useEffect(() => {
     if (!room) return
+    // Solo suscribirse una vez por room.id
+    if (roomIdRef.current === room.id) return
+    roomIdRef.current = room.id
 
     const subscription = supabase
       .channel(`room-db-${room.id}`)
@@ -106,8 +112,11 @@ export default function LobbyPage() {
       })
       .subscribe()
 
-    return () => { subscription.unsubscribe() }
-  }, [room, setRoom])
+    return () => {
+      roomIdRef.current = null
+      subscription.unsubscribe()
+    }
+  }, [room?.id, setRoom]) // Solo room.id, no room completo
 
   const copyCode = () => {
     navigator.clipboard.writeText(room?.code ?? '')

@@ -28,7 +28,7 @@ export default function WordDisplay({
   const displayChars = buildDisplayWord(word, correctLetters)
 
   return (
-    <div className="flex items-end justify-center gap-1 flex-wrap px-4">
+    <div className="flex items-end justify-center gap-1 flex-wrap px-4" role="status" aria-label={`Palabra: ${displayChars.map(c => c === '_' ? 'guion' : c === ' ' ? 'espacio' : c).join(' ')}`}>
       {displayChars.map((char, index) => {
         if (char === ' ') {
           return <div key={index} className="w-4" />

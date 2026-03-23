@@ -6,6 +6,7 @@ import { calculateRoundScore } from '@/utils/scoreCalculator'
 
 // ─── MATCH ───────────────────────────────────────────────────────────────────
 
+/** Crea una nueva partida (match) asociada a una sala y un duo. */
 export async function createMatch(params: {
   roomId: string
   player1Id: string
@@ -28,12 +29,14 @@ export async function createMatch(params: {
   return data as Match
 }
 
+/** Obtiene una partida por ID. Retorna null si no existe. */
 export async function getMatch(matchId: string): Promise<Match | null> {
   const { data, error } = await supabase.from('matches').select('*').eq('id', matchId).single()
   if (error) return null
   return data as Match
 }
 
+/** Marca una partida como iniciada (status → proposer_choosing). */
 export async function startMatch(matchId: string): Promise<void> {
   const { error } = await db.from('matches').update({
     status: 'proposer_choosing',
@@ -43,6 +46,7 @@ export async function startMatch(matchId: string): Promise<void> {
   if (error) throw error
 }
 
+/** Actualiza el estado de una partida. Si es match_end, tambien setea ended_at. */
 export async function updateMatchStatus(matchId: string, status: Match['status']): Promise<void> {
   const updates: Record<string, unknown> = { status, updated_at: new Date().toISOString() }
   if (status === 'match_end') updates.ended_at = new Date().toISOString()
@@ -52,6 +56,7 @@ export async function updateMatchStatus(matchId: string, status: Match['status']
 
 // ─── ROUND ───────────────────────────────────────────────────────────────────
 
+/** Crea una nueva ronda: codifica la palabra, asigna comodines. */
 export async function createRound(params: {
   matchId: string
   roundNumber: number

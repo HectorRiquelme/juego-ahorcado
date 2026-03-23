@@ -41,7 +41,7 @@ export default function Keyboard({
   }
 
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div className="flex flex-col items-center gap-2" role="group" aria-label="Teclado de letras">
       {KEYBOARD_ROWS.map((row, rowIndex) => (
         <div key={rowIndex} className="flex gap-1.5 sm:gap-2">
           {row.map((letter) => {
@@ -54,6 +54,7 @@ export default function Keyboard({
                 whileTap={!isUsed && !disabled ? { scale: 0.9 } : undefined}
                 onClick={() => !isUsed && !disabled && onLetterPress(letter)}
                 disabled={isUsed || disabled}
+                aria-label={`Letra ${letter}${status === 'correct' ? ' - correcta' : status === 'wrong' ? ' - incorrecta' : status === 'eliminated' ? ' - eliminada' : ''}`}
                 className={cn(
                   'w-9 h-11 sm:w-10 sm:h-12 rounded-lg font-mono font-semibold text-sm sm:text-base',
                   'border transition-all duration-200',

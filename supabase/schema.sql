@@ -184,6 +184,7 @@ CREATE TABLE IF NOT EXISTS rounds (
 );
 
 CREATE INDEX idx_rounds_match ON rounds (match_id);
+CREATE INDEX idx_rounds_match_round ON rounds (match_id, round_number);
 CREATE INDEX idx_rounds_proposer ON rounds (proposer_id);
 CREATE INDEX idx_rounds_guesser ON rounds (guesser_id);
 
@@ -199,6 +200,7 @@ CREATE TABLE IF NOT EXISTS round_events (
 );
 
 CREATE INDEX idx_round_events_round ON round_events (round_id);
+CREATE INDEX idx_round_events_round_type ON round_events (round_id, event_type);
 CREATE INDEX idx_round_events_player ON round_events (player_id);
 
 -- ─── TABLA: round_powerup_uses ──────────────────────────────

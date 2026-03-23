@@ -19,7 +19,7 @@ export default function ScoreBoard({
   totalRounds,
 }: ScoreBoardProps) {
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-3" role="status" aria-label={`Marcador: ${myName} ${myScore} - ${opponentName} ${opponentScore}, ronda ${currentRound} de ${totalRounds}`}>
       {/* Jugador */}
       <div className="flex-1 text-right">
         <p className="text-xs text-text-muted truncate">{myName}</p>

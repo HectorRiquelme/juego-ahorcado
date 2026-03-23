@@ -49,7 +49,7 @@ export default function GameTimer({
   const isUrgent = timeLeft <= 10
 
   return (
-    <div className="flex flex-col items-center gap-1">
+    <div className="flex flex-col items-center gap-1" role="timer" aria-label={`Tiempo restante: ${formatDuration(timeLeft)}`} aria-live="off">
       <div
         className={`
           text-2xl font-mono font-bold tabular-nums

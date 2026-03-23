@@ -429,7 +429,6 @@ export default function GamePage() {
                 onUsePowerup={handlePowerup}
                 powerupsForProposer={powerupsForProposer}
                 powerupsForGuesser={powerupsForGuesser}
-                myName={myName}
               />
             </div>
 
@@ -483,7 +482,6 @@ interface GameBoardProps {
   onUsePowerup: (type: PowerupType) => void
   powerupsForProposer: PowerupType[]
   powerupsForGuesser: PowerupType[]
-  myName: string
 }
 
 function GameBoard({
@@ -497,7 +495,6 @@ function GameBoard({
   onUsePowerup,
   powerupsForProposer,
   powerupsForGuesser,
-  myName: _myName,
 }: GameBoardProps) {
   return (
     <motion.div

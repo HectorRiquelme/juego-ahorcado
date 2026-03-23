@@ -30,6 +30,8 @@ export default function HangmanSVG({ errors, maxErrors = 6 }: HangmanSVGProps) {
       fill="none"
       strokeLinecap="round"
       strokeLinejoin="round"
+      role="img"
+      aria-label={`Ahorcado: ${errors} de ${maxErrors} errores`}
     >
       {/* Horca — siempre visible */}
       {/* Base */}
@@ -145,10 +147,6 @@ export default function HangmanSVG({ errors, maxErrors = 6 }: HangmanSVGProps) {
         </>
       )}
 
-      {/* Cara feliz si está adivinando bien (0 errors, ojos y sonrisa) */}
-      {errors === 0 && (
-        <></>
-      )}
     </svg>
   )
 }

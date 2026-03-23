@@ -211,6 +211,7 @@ export default function LobbyPage() {
                     onClick={copyCode}
                     className="p-2 rounded-lg bg-bg-surface2 hover:bg-border transition-colors"
                     title="Copiar código"
+                    aria-label="Copiar código de sala"
                   >
                     {copied ? (
                       <span className="text-success text-sm">✓</span>
@@ -306,7 +307,7 @@ function PlayerCard({
     }`}>
       <div className="relative">
         <div className="w-10 h-10 rounded-full bg-bg-surface2 border border-border flex items-center justify-center font-bold text-text">
-          {waiting ? '?' : name[0].toUpperCase()}
+          {waiting ? '?' : (name || '?').charAt(0).toUpperCase()}
         </div>
         <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-bg ${
           online ? 'bg-success' : 'bg-border'

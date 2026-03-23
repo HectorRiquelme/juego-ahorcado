@@ -142,7 +142,8 @@ export default function ChatPanel({
         <button
           onClick={handleSend}
           disabled={!input.trim() || disabled}
-          className="shrink-0 w-9 h-9 bg-primary hover:bg-primary-hover disabled:opacity-40 rounded-xl flex items-center justify-center transition-all active:scale-90"
+          aria-label="Enviar mensaje"
+          className="shrink-0 w-9 h-9 bg-primary hover:bg-primary-hover disabled:opacity-40 rounded-xl flex items-center justify-center transition-all duration-200 active:scale-90"
         >
           <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}

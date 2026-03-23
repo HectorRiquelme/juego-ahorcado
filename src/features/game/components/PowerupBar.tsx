@@ -62,7 +62,7 @@ export default function PowerupBar({
   if (available.length === 0) return null
 
   return (
-    <div className="flex flex-wrap justify-center gap-2">
+    <div className="flex flex-wrap justify-center gap-2" role="group" aria-label="Comodines disponibles">
       {available.map((type) => {
         const info = POWERUP_INFO[type]
         if (!info) return null
@@ -77,6 +77,7 @@ export default function PowerupBar({
             onClick={() => !isUsed && !disabled && onUse(type)}
             disabled={isUsed || disabled}
             title={info.description}
+            aria-label={`${info.label}: ${info.description}${isUsed ? ' (usado)' : isActive ? ' (activo)' : ''}`}
             className={cn(
               'flex flex-col items-center gap-1 px-3 py-2 rounded-xl border text-xs font-medium',
               'transition-all duration-200',

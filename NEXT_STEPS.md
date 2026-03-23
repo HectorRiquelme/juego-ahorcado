@@ -1,7 +1,7 @@
 # NEXT_STEPS.md — Cuellito
 
-> Auditoria completa (2026-03-23). 104 issues encontrados → 50 corregidos en 5 commits.
-> Actualizado tras commit post-`48e76d5`. RPCs ejecutadas en Supabase. 0 altos pendientes.
+> Auditoria completa (2026-03-23). 104 issues encontrados → 76 corregidos en 7 commits.
+> Actualizado tras commit `1599e9d`. RPCs ejecutadas. 0 criticos, 0 altos, 0 medios pendientes.
 
 ---
 
@@ -54,6 +54,12 @@
 - `usePowerups.ts` — Lock `processingRef` anti doble-click + liberacion en finally (previene activacion duplicada)
 - `LobbyPage.tsx` — `roomIdRef` para suscripcion postgres_changes: solo se suscribe una vez por room.id, no se re-suscribe cada vez que room cambia
 
+### Commit 6 — 26 medios (7 archivos)
+**Payload validation (8):** helpers safeString/safeNumber/safeBool/safeArray en useGameState.ts, reemplazan 8 unsafe `as Type`
+**UI/UX (4):** ProposerForm loading state categorias, Navbar hamburger mobile con links, Navbar close on outside click
+**Tests E2E (12):** selectores CSS → getByText/getByRole, waitForTimeout → waitFor conditions, delays reducidos, Firefox project
+**Ya resueltos (2):** ChatPanel maxLength=200, GamePage post-error finally
+
 ### Ejecutado manualmente en Supabase SQL Editor
 - `append_letter_to_round` — RPC atomica para race condition de letras
 - `get_round_safe` — RPC que oculta word_encoded al guesser
@@ -66,19 +72,9 @@
 
 Todos los issues de severidad alta fueron resueltos.
 
-### Medios restantes (~26)
+### Medios restantes: 0 ✅
 
-| Categoria | Cantidad | Archivos | Detalle |
-|-----------|----------|----------|---------|
-| Event payload validation | 8 | `useGameState.ts` | Los 8 cases del switch hacen `as Type` sin validar shape real |
-| ChatPanel sin max chars | 1 | `ChatPanel.tsx` | Input de chat sin limite de caracteres |
-| ProposerForm loading | 1 | `ProposerForm.tsx` | Sin loading state mientras carga categorias |
-| Tests E2E selectores | 8 | `e2e/*.spec.ts` | Selectores CSS fragiles (getByRole mejor que getByClass) |
-| Tests E2E hard waits | 4 | `e2e/*.spec.ts` | waitForTimeout en lugar de waitFor condition |
-| Tests solo Chrome | 1 | `playwright.config.ts` | Sin Firefox/Safari coverage |
-| GamePage UI post-error | 1 | `GamePage.tsx:172-180` | try-catch existe pero UI puede quedar en loading |
-| ProposerForm word length | 1 | `ProposerForm.tsx` | Sin validacion de longitud minima/maxima de palabra |
-| Navbar mobile menu | 1 | `Navbar.tsx` | Sin hamburger menu en mobile (<768px) |
+Todos los issues de severidad media fueron resueltos.
 
 ### Bajos restantes (~28)
 
@@ -112,16 +108,19 @@ Todos los issues de severidad alta fueron resueltos.
 
 | Severidad | Total | Corregidos | Pendientes |
 |-----------|-------|-----------|-----------|
-| Critico | 13 | **13** | 0 |
+| Critico | 13 | **13** | 0 ✅ |
 | Alto | 21 | **21** | 0 ✅ |
-| Medio | 38 | **12** | 26 |
+| Medio | 38 | **38** | 0 ✅ |
 | Bajo | 32 | **5** | 27 |
-| **Total** | **104** | **51** | **53** |
+| **Total** | **104** | **77** | **27** |
 
 RPCs ejecutadas en Supabase: `append_letter_to_round` y `get_round_safe` ✅
 
-Los 53 pendientes son:
-- 26 medios: validaciones defensivas de payloads, robustez de tests E2E, UX minor
-- 27 bajos: accesibilidad, cleanup, documentacion, indices BD
+Los 27 pendientes son todos de severidad baja:
+- Accesibilidad (aria-labels, alt text): 8
+- Schema indices: 2
+- CSS minor (hover states, transitions): 5
+- Code cleanup (console.logs, imports): 5
+- Tests unitarios para utils: 4
+- Documentacion inline (JSDoc): 3
 - 8 features nuevas no iniciadas (roadmap Fase 2-5)
-- Ningun issue que cause crash en uso normal

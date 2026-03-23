@@ -82,6 +82,13 @@ export default function GamePage() {
   const matchId = (location.state as { matchId?: string })?.matchId ?? gameState?.matchId
   const firstProposerId = (location.state as { firstProposerId?: string })?.firstProposerId
   const myId = user?.id ?? ''
+
+  // CRITICO-08: guard si matchId es undefined (recarga directa de URL)
+  useEffect(() => {
+    if (!matchId && !gameState) {
+      navigate('/home')
+    }
+  }, [matchId, gameState, navigate])
   const myName = profile?.display_name ?? profile?.username ?? 'Tú'
   const roundState = gameState?.roundState
 

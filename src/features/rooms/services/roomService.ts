@@ -28,6 +28,10 @@ export async function createRoom(params: CreateRoomParams): Promise<Room> {
     attempts++
   }
 
+  if (attempts >= 5) {
+    throw new Error('No se pudo generar un código único. Intenta de nuevo.')
+  }
+
   const { data, error } = await db.from('rooms').insert({
     host_id: params.hostId,
     mode: params.mode,
@@ -51,6 +55,7 @@ export async function joinRoom(code: string, guestId: string): Promise<Room> {
     .update({ guest_id: guestId, status: 'lobby', updated_at: new Date().toISOString() })
     .eq('code', code.toUpperCase())
     .eq('status', 'waiting')
+    .eq('is_private', false)    // No se puede unir a salas privadas por código
     .is('guest_id', null)
     .neq('host_id', guestId)   // No puede unirse a su propia sala
     .select()

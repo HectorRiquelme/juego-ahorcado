@@ -43,7 +43,10 @@ export async function updateUserStatsAfterRound(params: {
   const { data: rawCurrent } = await supabase
     .from('user_stats').select('*').eq('user_id', params.userId).single()
   const current = rawCurrent as UserStats | null
-  if (!current) return
+  if (!current) {
+    console.error('updateUserStatsAfterRound: no stats row for user', params.userId)
+    return
+  }
 
   const roundsPlayed = current.rounds_played + 1
   const newStreak = params.roundWon ? current.current_streak + 1 : 0
@@ -69,7 +72,10 @@ export async function updateUserStatsAfterRound(params: {
     updated_at: new Date().toISOString(),
   }).eq('user_id', params.userId)
 
-  if (error) console.error('Error updating user stats:', error)
+  if (error) {
+    console.error('Error updating user stats after round:', error)
+    throw error
+  }
 }
 
 export async function updateUserStatsAfterMatch(params: {
@@ -82,15 +88,20 @@ export async function updateUserStatsAfterMatch(params: {
     .from('user_stats').select('matches_played, matches_won, matches_lost, matches_abandoned')
     .eq('user_id', params.userId).single()
   const current = rawCurrent as { matches_played: number; matches_won: number; matches_lost: number; matches_abandoned: number } | null
-  if (!current) return
+  if (!current) {
+    console.error('updateUserStatsAfterMatch: no stats row for user', params.userId)
+    return
+  }
 
-  await db.from('user_stats').update({
+  const { error } = await db.from('user_stats').update({
     matches_played: current.matches_played + 1,
     matches_won: current.matches_won + (params.won ? 1 : 0),
     matches_lost: current.matches_lost + (params.lost ? 1 : 0),
     matches_abandoned: current.matches_abandoned + (params.abandoned ? 1 : 0),
     updated_at: new Date().toISOString(),
   }).eq('user_id', params.userId)
+
+  if (error) console.error('Error updating user stats after match:', error)
 }
 
 export async function updateDuoStatsAfterMatch(params: {
@@ -105,7 +116,10 @@ export async function updateDuoStatsAfterMatch(params: {
   const { data: rawCurrent } = await supabase
     .from('duo_stats').select('*').eq('duo_id', params.duoId).single()
   const current = rawCurrent as DuoStats | null
-  if (!current) return
+  if (!current) {
+    console.error('updateDuoStatsAfterMatch: no stats row for duo', params.duoId)
+    return
+  }
 
   const newAvgDuration = current.avg_match_duration_seconds == null
     ? params.matchDurationSeconds
@@ -114,7 +128,7 @@ export async function updateDuoStatsAfterMatch(params: {
         (current.matches_completed + (params.completed ? 1 : 0))
       )
 
-  await db.from('duo_stats').update({
+  const { error } = await db.from('duo_stats').update({
     total_matches: current.total_matches + 1,
     matches_completed: current.matches_completed + (params.completed ? 1 : 0),
     player1_wins: current.player1_wins + (params.player1Won ? 1 : 0),
@@ -125,4 +139,6 @@ export async function updateDuoStatsAfterMatch(params: {
     last_played_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   }).eq('duo_id', params.duoId)
+
+  if (error) console.error('Error updating duo stats:', error)
 }

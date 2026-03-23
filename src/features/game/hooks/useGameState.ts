@@ -273,14 +273,18 @@ export function useGameState({ roomCode, onChatMessage, onLetterResult, onTimeFr
       }
 
       // Persistir en DB
-      await submitLetterGuess({
-        roundId: round.roundId,
-        matchId: gameState!.matchId,
-        playerId: myId,
-        letter,
-        isCorrect,
-        isShieldActive,
-      })
+      try {
+        await submitLetterGuess({
+          roundId: round.roundId,
+          matchId: gameState!.matchId,
+          playerId: myId,
+          letter,
+          isCorrect,
+          isShieldActive,
+        })
+      } catch (err) {
+        console.error('Error persistiendo letra:', err)
+      }
 
       // Notificar al desafiado vía Realtime
       sendEvent('letter_guessed', { letter, correct: isCorrect })
@@ -318,16 +322,22 @@ export function useGameState({ roomCode, onChatMessage, onLetterResult, onTimeFr
       // ── Calcular puntos ───────────────────────────────────────────────
       // guesserScore: puntos para el desafiado (solo si adivinó)
       // proposerScore: puntos para el proponente (solo si el desafiado falló)
-      const guesserScore = await finishRound({
-        roundId: round.roundId,
-        matchId: gameState!.matchId,
-        result,
-        secondsTaken,
-        correctLetters: round.correctLetters.length,
-        wrongLetters: round.wrongLetters.length,
-        powerupsUsed: round.powerupsUsed.length,
-        timerSeconds: round.timerSeconds,
-      })
+      let guesserScore: number
+      try {
+        guesserScore = await finishRound({
+          roundId: round.roundId,
+          matchId: gameState!.matchId,
+          result,
+          secondsTaken,
+          correctLetters: round.correctLetters.length,
+          wrongLetters: round.wrongLetters.length,
+          powerupsUsed: round.powerupsUsed.length,
+          timerSeconds: round.timerSeconds,
+        })
+      } catch (err) {
+        console.error('Error finalizando ronda:', err)
+        guesserScore = 0
+      }
 
       // El proponente gana puntos cuando el desafiado NO adivina
       const proposerScore = result !== 'won'

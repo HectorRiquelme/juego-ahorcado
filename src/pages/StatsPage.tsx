@@ -19,6 +19,7 @@ export default function StatsPage() {
     if (!user) return
     getUserStats(user.id)
       .then(setStats)
+      .catch((err) => console.error('Error cargando stats:', err))
       .finally(() => setLoading(false))
   }, [user])
 

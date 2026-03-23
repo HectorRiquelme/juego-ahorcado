@@ -35,14 +35,15 @@ export default function GameTimer({
           onTimeUpRef.current()
           return 0
         }
-        return prev - 1
+        return Math.max(0, prev - 1)
       })
     }, 1000)
 
     return () => clearInterval(interval)
   }, [active, frozen])
 
-  const ratio = timeLeft / (totalSeconds + extraSeconds)
+  const total = totalSeconds + extraSeconds
+  const ratio = total > 0 ? timeLeft / total : 0
   const isUrgent = timeLeft <= 10
 
   return (

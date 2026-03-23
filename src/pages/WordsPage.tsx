@@ -42,6 +42,10 @@ export default function WordsPage() {
     ]).then(([{ data: ws }, { data: cats }]) => {
       setWords(ws ?? [])
       setCategories(cats ?? [])
+    }).catch((err) => {
+      console.error('Error cargando palabras:', err)
+      toast.error('Error cargando datos')
+    }).finally(() => {
       setLoading(false)
     })
   }, [user])
@@ -74,7 +78,11 @@ export default function WordsPage() {
   }
 
   const handleDelete = async (id: string) => {
-    await supabase.from('word_entries').delete().eq('id', id)
+    const { error } = await supabase.from('word_entries').delete().eq('id', id)
+    if (error) {
+      toast.error('Error al eliminar la palabra')
+      return
+    }
     setWords(words.filter((w) => w.id !== id))
     toast.success('Palabra eliminada')
   }

@@ -39,7 +39,7 @@ export default function Modal({ open, onClose, title, children, className }: Mod
             )}
             {onClose && (
               <button
-                onClick={onClose}
+                onClick={(e) => { e.stopPropagation(); onClose() }}
                 className="absolute top-4 right-4 text-text-subtle hover:text-text transition-colors"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

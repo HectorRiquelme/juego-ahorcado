@@ -36,6 +36,8 @@ export default function HomePage() {
     ]).then(([s, matches]) => {
       setStats(s)
       setRecentMatches(matches)
+    }).catch((err) => {
+      console.error('Error cargando datos del home:', err)
     })
   }, [user])
 

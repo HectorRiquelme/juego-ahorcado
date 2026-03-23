@@ -31,7 +31,13 @@ export default function ProposerForm({ onSubmit, maxPowerups, loading }: Propose
       .select('*')
       .eq('is_public', true)
       .order('name')
-      .then(({ data }) => setCategories(data ?? []))
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('Error cargando categorías:', error)
+          return
+        }
+        setCategories(data ?? [])
+      })
   }, [])
 
   const validate = (): boolean => {

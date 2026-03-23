@@ -31,62 +31,67 @@ export default function MatchEndPage() {
     setStatsUpdated(true)
 
     const update = async () => {
-      // Obtener match completo
-      const { data: match } = await supabase
-        .from('matches')
-        .select('*')
-        .eq('id', matchId)
-        .single()
+      try {
+        // Obtener match completo
+        const { data: match, error: matchError } = await supabase
+          .from('matches')
+          .select('*')
+          .eq('id', matchId)
+          .single()
 
-      if (!match) return
+        if (matchError || !match) {
+          console.error('Error cargando match:', matchError)
+          return
+        }
 
-      // Determinar ganador
-      const winnerId = myScore > opponentScore
-        ? myId
-        : opponentScore > myScore
-        ? gameState?.opponentId
-        : null
+        // Determinar ganador
+        const winnerId = myScore > opponentScore
+          ? myId
+          : opponentScore > myScore
+          ? gameState?.opponentId
+          : null
 
-      const typedMatchData = match as { player1_id: string; duo_id: string | null; started_at: string | null; current_round: number }
+        const typedMatchData = match as { player1_id: string; duo_id: string | null; started_at: string | null; current_round: number }
 
-      // BUG 7 FIX: solo player1 (host) hace el UPDATE del match para evitar
-      // que ambos jugadores sobreescriban simultáneamente con valores distintos.
-      // Los scores se asignan según el rol real de cada jugador (no la perspectiva local).
-      if (typedMatchData.player1_id === myId) {
-        await db.from('matches').update({
-          status: 'match_end',
-          winner_id: winnerId,
-          player1_score: myScore,       // yo soy player1
-          player2_score: opponentScore,
-          ended_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        }).eq('id', matchId)
-      }
-      // Si soy player2, no hago UPDATE — player1 lo hará con los valores correctos.
-      // (player1 siempre está en la partida y siempre llega a match-end)
+        // BUG 7 FIX: solo player1 (host) hace el UPDATE del match para evitar
+        // que ambos jugadores sobreescriban simultáneamente con valores distintos.
+        if (typedMatchData.player1_id === myId) {
+          const { error: updateError } = await db.from('matches').update({
+            status: 'match_end',
+            winner_id: winnerId,
+            player1_score: myScore,
+            player2_score: opponentScore,
+            ended_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }).eq('id', matchId)
+          if (updateError) console.error('Error actualizando match:', updateError)
+        }
 
-      // Actualizar user stats
-      await updateUserStatsAfterMatch({
-        userId: myId,
-        won: won && !tie,
-        lost: !won && !tie,
-        abandoned: false,
-      })
-
-      // Actualizar duo stats si hay duo
-      if (typedMatchData.duo_id) {
-        const startedAt = typedMatchData.started_at ? new Date(typedMatchData.started_at).getTime() : Date.now()
-        const durationSeconds = Math.floor((Date.now() - startedAt) / 1000)
-        const isPlayer1 = typedMatchData.player1_id === myId
-        await updateDuoStatsAfterMatch({
-          duoId: typedMatchData.duo_id,
-          completed: true,
-          player1Won: isPlayer1 ? won && !tie : !won && !tie,
-          player2Won: isPlayer1 ? !won && !tie : won && !tie,
-          tie,
-          roundsPlayed: typedMatchData.current_round ?? 1,
-          matchDurationSeconds: durationSeconds,
+        // Actualizar user stats
+        await updateUserStatsAfterMatch({
+          userId: myId,
+          won: won && !tie,
+          lost: !won && !tie,
+          abandoned: false,
         })
+
+        // Actualizar duo stats si hay duo
+        if (typedMatchData.duo_id) {
+          const startedAt = typedMatchData.started_at ? new Date(typedMatchData.started_at).getTime() : Date.now()
+          const durationSeconds = Math.floor((Date.now() - startedAt) / 1000)
+          const isPlayer1 = typedMatchData.player1_id === myId
+          await updateDuoStatsAfterMatch({
+            duoId: typedMatchData.duo_id,
+            completed: true,
+            player1Won: isPlayer1 ? won && !tie : !won && !tie,
+            player2Won: isPlayer1 ? !won && !tie : won && !tie,
+            tie,
+            roundsPlayed: typedMatchData.current_round ?? 1,
+            matchDurationSeconds: durationSeconds,
+          })
+        }
+      } catch (err) {
+        console.error('Error actualizando estadísticas de fin de partida:', err)
       }
     }
 

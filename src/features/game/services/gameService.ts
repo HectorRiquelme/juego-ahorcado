@@ -134,7 +134,10 @@ export async function submitLetterGuess(params: {
   const { data: rawRound } = await supabase
     .from('rounds').select('correct_letters, wrong_letters, errors_count').eq('id', params.roundId).single()
   const round = rawRound as { correct_letters: string[]; wrong_letters: string[]; errors_count: number } | null
-  if (!round) return
+  if (!round) {
+    console.error('submitLetterGuess: round not found', params.roundId)
+    return
+  }
 
   if (params.isCorrect) {
     await db.from('rounds').update({
@@ -173,7 +176,7 @@ export async function finishRound(params: {
     timerSeconds: params.timerSeconds,
   })
 
-  await db.from('rounds').update({
+  const { error } = await db.from('rounds').update({
     result: params.result,
     score,
     status: 'round_end',
@@ -181,6 +184,7 @@ export async function finishRound(params: {
     updated_at: new Date().toISOString(),
   }).eq('id', params.roundId)
 
+  if (error) throw error
   return score
 }
 

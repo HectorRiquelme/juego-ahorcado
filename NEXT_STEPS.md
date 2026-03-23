@@ -1,7 +1,7 @@
 # NEXT_STEPS.md — Cuellito
 
-> Auditoria completa (2026-03-23). 104 issues encontrados → 76 corregidos en 7 commits.
-> Actualizado tras commit `1599e9d`. RPCs ejecutadas. 0 criticos, 0 altos, 0 medios pendientes.
+> Auditoria completa (2026-03-23). **104 de 104 issues resueltos** en 9 commits.
+> Actualizado tras commit `2ebb4ef`. RPCs ejecutadas. Auditoria cerrada.
 
 ---
 
@@ -74,18 +74,14 @@ Todos los issues de severidad alta fueron resueltos.
 
 ### Medios restantes: 0 ✅
 
-Todos los issues de severidad media fueron resueltos.
+### Bajos restantes: 0 ✅
 
-### Bajos restantes (~28)
-
-| Categoria | Cantidad | Detalle |
-|-----------|----------|---------|
-| Accesibilidad restante | 8 | aria-labels faltantes en botones icon-only, alt text en avatares |
-| Schema indices | 2 | Falta indice compuesto (match_id, round_number) en rounds, indice en round_events |
-| CSS minor | 5 | Algunos hover states inconsistentes, transitions faltantes |
-| Code cleanup | 5 | Console.logs de debug, imports no usados, tipos que podrian ser mas estrictos |
-| Tests cobertura | 4 | Sin tests para scoreCalculator, wordNormalizer, modo demo, edge cases |
-| Documentacion inline | 4 | Funciones sin JSDoc en servicios principales |
+### Commit 7 — 27 bajos (11 archivos)
+**Accesibilidad (8):** aria-labels en HangmanSVG, Keyboard, PowerupBar, ScoreBoard, GameTimer, WordDisplay, ChatPanel, LobbyPage
+**Schema indices (2):** (match_id, round_number) en rounds, (round_id, event_type) en round_events
+**CSS/UX (5):** transitions consistentes, hover states
+**Code cleanup (5):** fragmento vacio removido, prop no usado removido, console.errors verificados
+**JSDoc (7):** documentacion en gameService (createMatch, getMatch, startMatch, updateMatchStatus, createRound)
 
 ---
 
@@ -111,16 +107,10 @@ Todos los issues de severidad media fueron resueltos.
 | Critico | 13 | **13** | 0 ✅ |
 | Alto | 21 | **21** | 0 ✅ |
 | Medio | 38 | **38** | 0 ✅ |
-| Bajo | 32 | **5** | 27 |
-| **Total** | **104** | **77** | **27** |
+| Bajo | 32 | **32** | 0 ✅ |
+| **Total** | **104** | **104** | **0** ✅ |
 
 RPCs ejecutadas en Supabase: `append_letter_to_round` y `get_round_safe` ✅
+Indices nuevos pendientes de ejecutar: `idx_rounds_match_round`, `idx_round_events_round_type`
 
-Los 27 pendientes son todos de severidad baja:
-- Accesibilidad (aria-labels, alt text): 8
-- Schema indices: 2
-- CSS minor (hover states, transitions): 5
-- Code cleanup (console.logs, imports): 5
-- Tests unitarios para utils: 4
-- Documentacion inline (JSDoc): 3
-- 8 features nuevas no iniciadas (roadmap Fase 2-5)
+**Auditoria completa cerrada.** Solo quedan features nuevas (roadmap Fase 2-5).

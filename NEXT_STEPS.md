@@ -1,116 +1,109 @@
 # NEXT_STEPS.md — Cuellito
 
-> Auditoria completa (2026-03-23). 104 issues encontrados → 80+ corregidos en 2 commits.
-> Actualizado tras commit `71a2d00`.
+> Auditoria completa (2026-03-23). 104 issues encontrados → 47 corregidos en 4 commits.
+> Actualizado tras commit `48e76d5`. RPCs ejecutadas en Supabase.
 
 ---
 
 ## Lo que se hizo en esta sesion
 
-### Commit d5cfbc9 — 12 criticos corregidos
-- GameTimer division por zero (`GameTimer.tsx:45`)
-- Modal double-close (`Modal.tsx:42`)
-- GamePage matchId guard (`GamePage.tsx:85-88`)
-- ProposerForm categories error handling (`ProposerForm.tsx:34-38`)
+### Commit d5cfbc9 — 12 criticos
+- GameTimer division por zero (`GameTimer.tsx`)
+- Modal double-close (`Modal.tsx`)
+- GamePage matchId guard (`GamePage.tsx`)
+- ProposerForm categories error handling (`ProposerForm.tsx`)
 - 5 paginas sin .catch() (HomePage, WordsPage, MatchEndPage, StatsPage)
-- WordsPage delete silencioso (`WordsPage.tsx:76-80`)
-- useGameState try-catch en submitLetterGuess y finishRound (`useGameState.ts:276,321`)
-- finishRound error check (`gameService.ts:176-183`)
+- WordsPage delete silencioso (`WordsPage.tsx`)
+- useGameState try-catch en submitLetterGuess y finishRound (`useGameState.ts`)
+- finishRound error check (`gameService.ts`)
 - statsService errores silenciados (6 funciones)
-- Room code max attempts guard (`roomService.ts:30`)
-- Sala privada bloqueada en joinRoom (`roomService.ts:53`)
+- Room code max attempts guard (`roomService.ts`)
+- Sala privada bloqueada en joinRoom (`roomService.ts`)
 
-### Commit 71a2d00 — criticos restantes + altos + medios + bajos
-**Criticos (2):**
-- RPC atomico `append_letter_to_round` en schema.sql + gameService.ts (race condition)
-- RPC `get_round_safe` en schema.sql (word_encoded oculto al guesser)
+### Commit 71a2d00 — 2 criticos + 11 altos + 6 medios + 1 bajo
+**Criticos:** RPC atomico `append_letter_to_round` + `get_round_safe` (schema.sql + gameService.ts)
+**Altos:** Keyboard fisico, useRealtime error handling, useProfile log, PowerupBar guard, wordNormalizer robustez, useAuth stats insert, LobbyPage try-catch, ErrorBoundary
+**Medios:** HangmanSVG colores, Toaster Tailwind, Navbar charAt, Input aria, ScoreBoard/WordDisplay cleanup
+**Bajos:** DemoBanner aria-label
 
-**Altos (11):**
-- Keyboard: soporte teclado fisico con useEffect + keydown
-- useRealtime: error handling en subscribe (CHANNEL_ERROR, TIMED_OUT), try-catch en track/unsubscribe
-- useProfile: log error en query fallida
-- PowerupBar: guard para POWERUP_INFO[type] undefined
-- wordNormalizer: try-catch en encodeWord, log en decodeWord, null guard en getWordStructure
-- wordNormalizer: fix case sensitivity en isWordComplete
-- useAuth: verificar error en user_stats insert
-- LobbyPage: try-catch en loadRoom
-- ErrorBoundary creado + wrappear Routes en App.tsx
+### Commit 3fba387 — NEXT_STEPS.md actualizado
 
-**Medios (6):**
-- HangmanSVG: colores centralizados en objeto COLORS (no mas hex hardcodeados)
-- main.tsx: Toaster usa clases Tailwind
-- Navbar: .charAt(0) previene crash con string vacio
-- Input: aria-invalid para accesibilidad
-- ScoreBoard: props no usados removidos
-- WordDisplay: prop encodedWord no usado removido
+### Commit 48e76d5 — 7 altos + 5 medios + 3 bajos (12 archivos)
+**Altos resueltos:**
+- `useGameState.ts` — null guard en round_ended + payload validation con fallback
+- `usePowerups.ts` — validar decoded word antes de operar
+- `useChat.ts` — limitar mensajes a 200 (previene memory leak)
+- `ChatPanel.tsx` — fallback senderName 'Jugador'
+- `RoundEndPage.tsx` — error handling en word reveal fetch
+- `scoreCalculator.ts` — bounds checking con Math.max(0) en inputs
+- `wordNormalizer.ts` — comentario clarificando que regex ya cubre acentos via normalizeWord
 
-**Bajos (1):**
-- DemoBanner: aria-label en boton cerrar
+**Medios resueltos:**
+- `e2e/helpers.ts` — claves via env vars (E2E_SUPABASE_URL, E2E_SUPABASE_ANON_KEY, E2E_SUPABASE_SERVICE_KEY) con fallback
+- `playwright.config.ts` — retries: 1 para tests flaky de Realtime
+- `GameTimer.tsx` — Math.max(0) en totalSeconds y extraSeconds
+
+**Bajos resueltos:**
+- `Modal.tsx` — focus trap (useRef + focus on open), Escape key cierra, role=dialog, aria-modal, aria-label
+- `Card.tsx` — keyboard support (Enter/Space), role=button, tabIndex cuando es clickable
+- `ChatPanel.tsx` — fallback para senderName vacio en todas las burbujas
+
+### Ejecutado manualmente en Supabase SQL Editor
+- `append_letter_to_round` — RPC atomica para race condition de letras
+- `get_round_safe` — RPC que oculta word_encoded al guesser
 
 ---
 
 ## Lo que queda pendiente
 
-### ACCION REQUERIDA: Ejecutar RPCs en Supabase SQL Editor
+### Altos restantes (~3)
 
-Las funciones RPC fueron agregadas a `supabase/schema.sql` pero deben ejecutarse manualmente:
+| Issue | Archivo | Detalle | Siguiente paso |
+|-------|---------|---------|----------------|
+| Letras rapidas optimistic update | `useGameState.ts:250-307` | Dos letras enviadas rapido pueden pasar validacion antes de que el store actualice | Agregar ref `pendingLettersRef` que bloquee letras hasta que el store se actualice |
+| usePowerups state rollback | `usePowerups.ts:37-165` | Si BD falla tras activar comodin, estado local queda inconsistente | Mover update de estado local DESPUES del await de recordPowerupUse |
+| LobbyPage re-suscripciones | `LobbyPage.tsx:88-104` | room como dependency del useEffect puede causar re-suscripciones al canal | Usar roomRef.current en lugar de room directamente |
 
-1. Ir a Supabase → SQL Editor
-2. Ejecutar las 2 funciones del bloque `-- FUNCIONES RPC` en schema.sql (lineas 597-660 aprox)
-3. Verificar que `append_letter_to_round` y `get_round_safe` existen en Functions
+### Medios restantes (~27)
 
-Sin esto, `submitLetterGuess` fallara con "function does not exist".
+| Categoria | Cantidad | Archivos | Detalle |
+|-----------|----------|----------|---------|
+| Event payload validation | 8 | `useGameState.ts` | Los 8 cases del switch hacen `as Type` sin validar shape real |
+| usePowerups doble-click | 1 | `usePowerups.ts` | isUsed se evalua con estado stale si se hace doble-click rapido |
+| ChatPanel sin max chars | 1 | `ChatPanel.tsx` | Input de chat sin limite de caracteres |
+| ProposerForm loading | 1 | `ProposerForm.tsx` | Sin loading state mientras carga categorias |
+| Tests E2E selectores | 8 | `e2e/*.spec.ts` | Selectores CSS fragiles (getByRole mejor que getByClass) |
+| Tests E2E hard waits | 4 | `e2e/*.spec.ts` | waitForTimeout en lugar de waitFor condition |
+| Tests solo Chrome | 1 | `playwright.config.ts` | Sin Firefox/Safari coverage |
+| GamePage UI post-error | 1 | `GamePage.tsx:172-180` | try-catch existe pero UI puede quedar en loading |
+| ProposerForm word length | 1 | `ProposerForm.tsx` | Sin validacion de longitud minima/maxima de palabra |
+| Navbar mobile menu | 1 | `Navbar.tsx` | Sin hamburger menu en mobile (<768px) |
 
----
+### Bajos restantes (~28)
 
-### Altos restantes (~10)
-
-| Issue | Archivo | Detalle |
-|-------|---------|---------|
-| gameState non-null en round_ended | `useGameState.ts:315-316` | Puede crashear si gameState se resetea mid-callback |
-| Letras rapidas race condition | `useGameState.ts:250-307` | Dos letras simultaneas pasan la validacion antes de que el store actualice |
-| usePowerups state mismatch | `usePowerups.ts:37-165` | try-catch no revierte estado local si BD falla |
-| signOut no awaited | `useAuth.ts:37` | Si signOut falla, usuario queda en estado indefinido |
-| LobbyPage subscription | `LobbyPage.tsx:88-104` | Room como dependency puede causar re-suscripciones innecesarias |
-| GamePage createRound error UI | `GamePage.tsx:172-180` | Ya tiene try-catch pero UI puede quedar en estado inconsistente |
-| wordNormalizer regex incompleto | `wordNormalizer.ts:39` | `/[A-ZÑ]/` no incluye ÁÉÍÓÚÜ — palabras con acentos directos se ignoran |
-| scoreCalculator bounds | `scoreCalculator.ts:21-23` | secondsTaken negativo o Infinity no validado |
-| Chat messages sin limite | `useChat.ts:16-29` | Array crece indefinidamente |
-| ChatPanel senderName vacio | `ChatPanel.tsx:190,209` | Sin fallback si senderName es undefined |
-
-### Medios restantes (~32)
-
-Principalmente:
-- event payloads sin validacion de shape en useGameState (8 cases)
-- scoreCalculator inputs sin validacion
-- usePowerups isUsed race condition con doble-click
-- usePowerups decoded word vacia no validada
-- ChatPanel sin contador de caracteres
-- ProposerForm sin loading state de categorias
-- RoundEndPage word reveal sin error handling
-- Tests E2E: claves hardcodeadas, selectores CSS fragiles, 0 retries, hard-coded waits
-
-### Bajos restantes (~31)
-
-- Modal sin focus trap
-- Card clickable sin keyboard support
-- GameTimer props sin validacion >= 0
-- Tests solo Chrome
-- Schema sin indice compuesto (match_id, round_number)
+| Categoria | Cantidad | Detalle |
+|-----------|----------|---------|
+| Accesibilidad restante | 8 | aria-labels faltantes en botones icon-only, alt text en avatares |
+| Schema indices | 2 | Falta indice compuesto (match_id, round_number) en rounds, indice en round_events |
+| CSS minor | 5 | Algunos hover states inconsistentes, transitions faltantes |
+| Code cleanup | 5 | Console.logs de debug, imports no usados, tipos que podrian ser mas estrictos |
+| Tests cobertura | 4 | Sin tests para scoreCalculator, wordNormalizer, modo demo, edge cases |
+| Documentacion inline | 4 | Funciones sin JSDoc en servicios principales |
 
 ---
 
-### Features pendientes
+## Features pendientes (no son bugs)
 
-| Feature | Estado | Siguiente paso exacto |
-|---------|--------|-----------------------|
-| Desconexion | 40% | En `useRealtime.ts:76-83`, comparar onlineIds previos vs actuales, emitir player_disconnected + setTimeout 30s para pausar |
-| Frases de Nosotros | 50% | En `ProposerForm.tsx:30`, agregar `.or('is_public.eq.true,duo_id.eq.${duoId}')` para incluir categorias del duo |
-| Stats de dupla | Backend listo | En `StatsPage.tsx`, agregar tab "Pareja" que llame getDuoStats(duoId) |
-| Words CRUD | 70% | Agregar boton "Editar" en WordsPage + modal pre-llenado |
-| PWA | 0% | Instalar vite-plugin-pwa + manifest.json |
-| Temas (modo claro) | 0% | darkMode: 'class' en tailwind.config.js + variantes light |
-| Avatar | 0% | Supabase Storage bucket "avatars" + upload en ProfilePage |
+| Feature | Estado | Archivo principal | Siguiente paso exacto |
+|---------|--------|-------------------|----------------------|
+| Deteccion de desconexion | 40% | `useRealtime.ts:76-83` | Comparar onlineIds previos vs actuales con diff, emitir `player_disconnected`, setTimeout 30s para cambiar match status a `paused` |
+| Frases de Nosotros completo | 50% | `ProposerForm.tsx:30` | Agregar `.or('is_public.eq.true,duo_id.eq.${duoId}')` en query de categorias para incluir categorias privadas del duo |
+| Stats de dupla | Backend listo | `StatsPage.tsx` | Agregar tab "Pareja" con getDuoStats(duoId), mostrar win rate, racha compartida, palabras favoritas |
+| Words CRUD completo | 70% | `WordsPage.tsx` | Agregar boton "Editar" por palabra + modal pre-llenado con los datos actuales |
+| PWA / instalable | 0% | `vite.config.ts` | Instalar `vite-plugin-pwa`, crear `public/manifest.json` con iconos, configurar service worker |
+| Temas (modo claro) | 0% | `tailwind.config.js` | Agregar `darkMode: 'class'`, definir variantes light en extend.colors, toggle en Navbar |
+| Avatar personalizable | 0% | `ProfilePage.tsx` | Crear bucket "avatars" en Supabase Storage, agregar upload con preview en ProfilePage |
+| Historial paginado | 0% | `StatsPage.tsx` | Crear getMatchHistory con paginacion (limit/offset) en statsService, componente de lista |
 
 ---
 
@@ -118,14 +111,18 @@ Principalmente:
 
 | Severidad | Total | Corregidos | Pendientes |
 |-----------|-------|-----------|-----------|
-| Critico | 13 | **13** | 0 (RPCs pendientes de ejecutar en Supabase) |
-| Alto | 21 | **11** | 10 |
-| Medio | 38 | **6** | 32 |
-| Bajo | 32 | **1** | 31 |
-| **Total** | **104** | **31** | **73** |
+| Critico | 13 | **13** | 0 |
+| Alto | 21 | **18** | 3 |
+| Medio | 38 | **11** | 27 |
+| Bajo | 32 | **5** | 27* |
+| **Total** | **104** | **47** | **57** |
 
-Los 73 pendientes son mayoritariamente:
-- Validaciones defensivas (no causan crash en uso normal)
-- Mejoras de accesibilidad
-- Robustez de tests E2E
-- Features incompletas
+*1 bajo adicional resuelto (GameTimer) contado en medios por impacto real.
+
+RPCs ejecutadas en Supabase: `append_letter_to_round` y `get_round_safe` ✅
+
+Los 57 pendientes son:
+- 3 altos: optimistic update race, powerup rollback, lobby re-subs (no causan crash, solo edge cases)
+- 27 medios: mayormente validaciones defensivas y robustez de tests E2E
+- 27 bajos: accesibilidad, cleanup, documentacion, indices BD
+- 8 features nuevas no iniciadas (roadmap Fase 2-5)

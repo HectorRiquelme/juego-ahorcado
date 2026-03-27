@@ -1,117 +1,83 @@
 # NEXT_STEPS.md — Cuellito
 
-> Auditoria completa (2026-03-23). **104 de 104 issues resueltos** en 9 commits.
-> Ultimo commit: `eaec11f`. RPCs ejecutadas. Auditoria cerrada.
-> Actualizado: 2026-03-24.
+> Ultimo commit: `59091be`. Auditoria cerrada + 3 features implementadas.
+> Actualizado: 2026-03-27.
 
 ---
 
-## Lo que se hizo en esta sesion
+## Lo que se hizo
 
-### Commit d5cfbc9 — 12 criticos
-- GameTimer division por zero (`GameTimer.tsx`)
-- Modal double-close (`Modal.tsx`)
-- GamePage matchId guard (`GamePage.tsx`)
-- ProposerForm categories error handling (`ProposerForm.tsx`)
-- 5 paginas sin .catch() (HomePage, WordsPage, MatchEndPage, StatsPage)
-- WordsPage delete silencioso (`WordsPage.tsx`)
-- useGameState try-catch en submitLetterGuess y finishRound (`useGameState.ts`)
-- finishRound error check (`gameService.ts`)
-- statsService errores silenciados (6 funciones)
-- Room code max attempts guard (`roomService.ts`)
-- Sala privada bloqueada en joinRoom (`roomService.ts`)
+### Auditoria completa (104/104 issues, 9 commits)
+- 13 criticos, 21 altos, 38 medios, 32 bajos — todos resueltos
+- RPCs ejecutadas: `append_letter_to_round`, `get_round_safe`
+- Detalle completo en PROJECT_CONTEXT.md
 
-### Commit 71a2d00 — 2 criticos + 11 altos + 6 medios + 1 bajo
-**Criticos:** RPC atomico `append_letter_to_round` + `get_round_safe` (schema.sql + gameService.ts)
-**Altos:** Keyboard fisico, useRealtime error handling, useProfile log, PowerupBar guard, wordNormalizer robustez, useAuth stats insert, LobbyPage try-catch, ErrorBoundary
-**Medios:** HangmanSVG colores, Toaster Tailwind, Navbar charAt, Input aria, ScoreBoard/WordDisplay cleanup
-**Bajos:** DemoBanner aria-label
+### Feature 1: Deteccion de desconexion (commit `90b371a`, 7 archivos, +191 lineas)
 
-### Commit 3fba387 — NEXT_STEPS.md actualizado
+| Que se hizo | Archivo |
+|-------------|---------|
+| Emitir player_disconnected/reconnected via presencia Realtime | `useRealtime.ts` |
+| Timers 30s→pausa, 600s→abandono + cleanup en unmount | `useGameState.ts` |
+| disconnectedAt + disconnectedPlayerId en GameState | `types/game.ts` |
+| setDisconnected() + clearDisconnected() en store | `gameStore.ts` |
+| Overlay de desconexion con 3 estados (detectado/pausado/abandonado) | `GamePage.tsx` |
+| Bloquear inicio si oponente no en presencia real | `LobbyPage.tsx` |
+| Campos nuevos en inicializacion de GameState | `demo.ts` |
 
-### Commit 48e76d5 — 7 altos + 5 medios + 3 bajos (12 archivos)
-**Altos resueltos:**
-- `useGameState.ts` — null guard en round_ended + payload validation con fallback
-- `usePowerups.ts` — validar decoded word antes de operar
-- `useChat.ts` — limitar mensajes a 200 (previene memory leak)
-- `ChatPanel.tsx` — fallback senderName 'Jugador'
-- `RoundEndPage.tsx` — error handling en word reveal fetch
-- `scoreCalculator.ts` — bounds checking con Math.max(0) en inputs
-- `wordNormalizer.ts` — comentario clarificando que regex ya cubre acentos via normalizeWord
+### Feature 2: Stats de dupla (commit `c11d86c`, 3 archivos, +376 lineas)
 
-**Medios resueltos:**
-- `e2e/helpers.ts` — claves via env vars (E2E_SUPABASE_URL, E2E_SUPABASE_ANON_KEY, E2E_SUPABASE_SERVICE_KEY) con fallback
-- `playwright.config.ts` — retries: 1 para tests flaky de Realtime
-- `GameTimer.tsx` — Math.max(0) en totalSeconds y extraSeconds
+| Que se hizo | Archivo |
+|-------------|---------|
+| getDuoForUser() — busca duo mas reciente + partner profile | `statsService.ts` |
+| Fix shared_streak + best_shared_streak en updateDuoStatsAfterMatch | `statsService.ts` |
+| DEMO_DUO_STATS + DEMO_PARTNER_PROFILE | `demo.ts` |
+| Tabs Personal/Pareja con cards: general, victorias comparadas (barra), rachas, tiempo, frases | `StatsPage.tsx` |
 
-**Bajos resueltos:**
-- `Modal.tsx` — focus trap (useRef + focus on open), Escape key cierra, role=dialog, aria-modal, aria-label
-- `Card.tsx` — keyboard support (Enter/Space), role=button, tabIndex cuando es clickable
-- `ChatPanel.tsx` — fallback para senderName vacio en todas las burbujas
+### Feature 3: Frases de Nosotros (commit `59091be`, 4 archivos, +254 lineas)
 
-### Commit 88567ea — 3 altos restantes (3 archivos)
-**Altos resueltos:**
-- `useGameState.ts` — Lock `processingLetterRef` que bloquea entradas mientras se procesa una letra + lee estado fresco del store para verificar fin de ronda
-- `usePowerups.ts` — Lock `processingRef` anti doble-click + liberacion en finally (previene activacion duplicada)
-- `LobbyPage.tsx` — `roomIdRef` para suscripcion postgres_changes: solo se suscribe una vez por room.id, no se re-suscribe cada vez que room cambia
-
-### Commit 1599e9d — 26 medios (7 archivos)
-**Payload validation (8):** helpers safeString/safeNumber/safeBool/safeArray en useGameState.ts, reemplazan 8 unsafe `as Type`
-**UI/UX (4):** ProposerForm loading state categorias, Navbar hamburger mobile con links, Navbar close on outside click
-**Tests E2E (12):** selectores CSS → getByText/getByRole, waitForTimeout → waitFor conditions, delays reducidos, Firefox project
-**Ya resueltos (2):** ChatPanel maxLength=200, GamePage post-error finally
-
-### Ejecutado manualmente en Supabase SQL Editor
-- `append_letter_to_round` — RPC atomica para race condition de letras
-- `get_round_safe` — RPC que oculta word_encoded al guesser
+| Que se hizo | Archivo |
+|-------------|---------|
+| Props gameMode + duoId, carga categorias/palabras del duo, sugerencias clickeables | `ProposerForm.tsx` |
+| Pasar gameMode y duoId desde room store | `GamePage.tsx` |
+| Tab "De pareja" con CRUD completo + incremento de private_words_created | `WordsPage.tsx` |
+| Param mode opcional + incremento our_phrases_count | `statsService.ts` |
 
 ---
 
 ## Lo que queda pendiente
 
-### Altos restantes: 0 ✅
+### Acciones en Supabase SQL Editor (ejecutar manualmente)
 
-Todos los issues de severidad alta fueron resueltos.
+```sql
+CREATE INDEX IF NOT EXISTS idx_rounds_match_round ON rounds (match_id, round_number);
+CREATE INDEX IF NOT EXISTS idx_round_events_round_type ON round_events (round_id, event_type);
+```
 
-### Medios restantes: 0 ✅
+### Features del roadmap (no iniciadas)
 
-### Bajos restantes: 0 ✅
-
-### Commit 2ebb4ef — 27 bajos (11 archivos)
-**Accesibilidad (8):** aria-labels en HangmanSVG, Keyboard, PowerupBar, ScoreBoard, GameTimer, WordDisplay, ChatPanel, LobbyPage
-**Schema indices (2):** (match_id, round_number) en rounds, (round_id, event_type) en round_events
-**CSS/UX (5):** transitions consistentes, hover states
-**Code cleanup (5):** fragmento vacio removido, prop no usado removido, console.errors verificados
-**JSDoc (7):** documentacion en gameService (createMatch, getMatch, startMatch, updateMatchStatus, createRound)
-
----
-
-## Features pendientes (no son bugs)
-
-| Feature | Estado | Archivo principal | Siguiente paso exacto |
-|---------|--------|-------------------|----------------------|
-| Deteccion de desconexion | 40% | `useRealtime.ts:76-83` | Comparar onlineIds previos vs actuales con diff, emitir `player_disconnected`, setTimeout 30s para cambiar match status a `paused` |
-| Frases de Nosotros completo | 50% | `ProposerForm.tsx:30` | Agregar `.or('is_public.eq.true,duo_id.eq.${duoId}')` en query de categorias para incluir categorias privadas del duo |
-| Stats de dupla | Backend listo | `StatsPage.tsx` | Agregar tab "Pareja" con getDuoStats(duoId), mostrar win rate, racha compartida, palabras favoritas |
-| Words CRUD completo | 70% | `WordsPage.tsx` | Agregar boton "Editar" por palabra + modal pre-llenado con los datos actuales |
-| PWA / instalable | 0% | `vite.config.ts` | Instalar `vite-plugin-pwa`, crear `public/manifest.json` con iconos, configurar service worker |
-| Temas (modo claro) | 0% | `tailwind.config.js` | Agregar `darkMode: 'class'`, definir variantes light en extend.colors, toggle en Navbar |
-| Avatar personalizable | 0% | `ProfilePage.tsx` | Crear bucket "avatars" en Supabase Storage, agregar upload con preview en ProfilePage |
-| Historial paginado | 0% | `StatsPage.tsx` | Crear getMatchHistory con paginacion (limit/offset) en statsService, componente de lista |
+| Feature | Prioridad | Archivo principal | Siguiente paso exacto |
+|---------|-----------|-------------------|----------------------|
+| Graficos de progreso temporal | Media | `StatsPage.tsx` | Instalar libreria de graficos (recharts/chart.js), agregar tab o seccion con grafico de puntaje por partida |
+| Historial de partidas paginado | Media | `StatsPage.tsx` | Crear getMatchHistory(userId, limit, offset) en statsService, componente MatchHistoryList con paginacion |
+| Editar palabra existente | Media | `WordsPage.tsx` | Boton editar por card → modal pre-llenado → update en word_entries |
+| PWA / instalable | Baja | `vite.config.ts` | Instalar vite-plugin-pwa, crear manifest.json con iconos, service worker basico |
+| Temas (modo claro) | Baja | `tailwind.config.js` | darkMode: 'class', paleta light en extend.colors, toggle en Navbar, persistir en localStorage |
+| Avatar personalizable | Baja | `ProfilePage.tsx` | Bucket "avatars" en Supabase Storage, upload con preview, actualizar avatar_url en profile |
+| Categorias tematicas | Baja | `WordsPage.tsx` | UI para crear categorias custom (nombre + emoji), insert con created_by |
+| Rankings entre amigos | Baja | Nueva pagina | Tabla de leaderboard por ranking_score, filtro por amigos |
+| Torneos multiplayer | Baja | Nueva arquitectura | Requiere replantear rooms/matches para 3+ jugadores |
+| Logros y medallas | Baja | Nueva tabla + pagina | Tabla achievements, trigger en updateUserStatsAfterMatch |
+| Edge Functions anti-trampa | Baja | `supabase/functions/` | Mover scoring/validacion al server con Supabase Edge Functions |
+| Internacionalizacion | Baja | Transversal | react-i18next, extraer strings de todos los componentes |
+| Tests unitarios | Baja | Nueva carpeta | Vitest para scoreCalculator, wordNormalizer, helpers de gameState |
 
 ---
 
-## Resumen de estado
+## Deuda tecnica residual
 
-| Severidad | Total | Corregidos | Pendientes |
-|-----------|-------|-----------|-----------|
-| Critico | 13 | **13** | 0 ✅ |
-| Alto | 21 | **21** | 0 ✅ |
-| Medio | 38 | **38** | 0 ✅ |
-| Bajo | 32 | **32** | 0 ✅ |
-| **Total** | **104** | **104** | **0** ✅ |
-
-RPCs ejecutadas en Supabase: `append_letter_to_round` y `get_round_safe` ✅
-Indices nuevos pendientes de ejecutar: `idx_rounds_match_round`, `idx_round_events_round_type`
-
-**Auditoria completa cerrada.** Solo quedan features nuevas (roadmap Fase 2-5).
+| Item | Impacto |
+|------|---------|
+| Tests solo E2E contra produccion | Medio — sin staging ni unit tests |
+| match_stats_snapshots nunca populated | Bajo — tabla existe pero no se inserta |
+| Logica de scoring client-side | Bajo — suficiente para scope actual |
+| Sin monitoring/analytics | Bajo — no hay APM ni error tracking |

@@ -10,7 +10,7 @@
 - **Tipo:** Juego del ahorcado multijugador en tiempo real (SPA)
 - **Objetivo:** Dos jugadores se enfrentan: uno propone una palabra/frase y el otro adivina letra por letra a traves de un chat en vivo, con comodines y puntuacion dinamica.
 - **URL produccion:** https://cuellito.vercel.app
-- **Estado:** MVP funcional desplegado. Auditoria de 104 issues completada (0 pendientes). Version publica operativa.
+- **Estado:** MVP + Fase 2-3 parcial. Auditoria de 104 issues cerrada. 3 features nuevas implementadas (desconexion, duo stats, frases de nosotros).
 
 ---
 
@@ -160,9 +160,12 @@ e2e/                  # 4 suites, 20 tests, helpers.ts
 - +50 max bonus por velocidad
 - Proponente gana: 60 base + 5 por error del desafiado
 
-### Timeouts
-- Desconexion → pausa: 30 segundos
-- Desconexion → abandono: 600 segundos
+### Timeouts y desconexion
+- Desconexion → pausa: 30 segundos (overlay en GamePage)
+- Desconexion → abandono: 600 segundos (redirect a match-end)
+- Deteccion via presencia Realtime: `prevOnlineIdsRef` en `useRealtime.ts`
+- Timers: `pauseTimerRef` y `abandonTimerRef` en `useGameState.ts`
+- Reconexion: cancela timers y restaura estado previo automaticamente
 
 ---
 
@@ -257,8 +260,8 @@ Fuentes: Inter (sans), JetBrains Mono (mono)
 
 ## 13. Roadmap (fases del DEPLOY.md)
 
-- **Fase 1 (MVP):** Completada — auth, salas, juego realtime, stats, comodines, UI responsive
-- **Fase 2:** Estadisticas ampliadas (graficos, historial paginado, rendimiento por categoria)
-- **Fase 3:** Experiencia de pareja (Frases de Nosotros completo, colecciones privadas)
+- **Fase 1 (MVP):** ✅ Completada — auth, salas, juego realtime, stats, comodines, UI responsive
+- **Fase 2 (parcial):** ✅ Stats de dupla (tabs Personal/Pareja, victorias comparadas, rachas). Pendiente: graficos de progreso, historial paginado, rendimiento por categoria
+- **Fase 3 (parcial):** ✅ Frases de Nosotros completo (ProposerForm duo-aware, WordsPage duo tab, counters). ✅ Deteccion de desconexion. Pendiente: colecciones privadas avanzadas
 - **Fase 4:** Personalizacion (temas, avatares, categorias tematicas)
 - **Fase 5:** Torneos y rankings (multiplayer 3+, logros, anti-trampa)

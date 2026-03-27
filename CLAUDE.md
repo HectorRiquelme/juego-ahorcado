@@ -167,6 +167,33 @@ Roles por ronda (se alternan):
 - `processingRef` en `usePowerups.ts` — lock anti doble-click en comodines
 - `roomIdRef` en `LobbyPage.tsx` — evita re-suscripciones multiples a Realtime
 - `safeString/safeNumber/safeBool/safeArray` en `useGameState.ts` — validacion de payloads de eventos Realtime
+- `prevOnlineIdsRef` en `useRealtime.ts` — compara presencia previa vs actual para detectar desconexiones
+- `pauseTimerRef/abandonTimerRef` en `useGameState.ts` — timers de 30s (pausa) y 600s (abandono) por desconexion
+
+## Deteccion de desconexion
+
+- `useRealtime.ts` emite `player_disconnected`/`player_reconnected` comparando listas de presencia
+- `useGameState.ts` maneja los eventos con timers: 30s → status `paused`, 600s → status `abandoned`
+- `GamePage.tsx` muestra overlay bloqueante con 3 estados: detectado, pausado, abandonado
+- `LobbyPage.tsx` bloquea inicio si oponente no esta en presencia real (no solo `guest_id` en BD)
+- `GameState` incluye `disconnectedAt` y `disconnectedPlayerId`
+- `gameStore` tiene `setDisconnected()` y `clearDisconnected()`
+
+## Stats de dupla
+
+- `StatsPage.tsx` tiene tabs "Personal" / "Pareja"
+- Tab Pareja muestra: header con partner, general, barra de victorias comparada, rachas juntos, tiempo, frases
+- `statsService.ts` tiene `getDuoForUser()` para buscar duo + partner
+- `shared_streak` y `best_shared_streak` se actualizan en `updateDuoStatsAfterMatch`
+- Demo: `DEMO_DUO_STATS` y `DEMO_PARTNER_PROFILE` en `demo.ts`
+
+## Frases de Nosotros (modo our_phrases)
+
+- `ProposerForm.tsx` acepta props `gameMode` y `duoId` — carga categorias/palabras del duo
+- Muestra sugerencias clickeables de palabras de pareja debajo del input
+- `WordsPage.tsx` tiene tabs "Mis palabras" / "De pareja" con CRUD completo de palabras del duo
+- `updateDuoStatsAfterMatch` incrementa `our_phrases_count` cuando mode es `our_phrases`
+- Crear palabra de pareja incrementa `private_words_created` en `duo_stats`
 
 ## Tests E2E
 

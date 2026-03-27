@@ -9,7 +9,7 @@
 **Cuellito** es un juego del ahorcado multijugador en tiempo real para dos personas. Un jugador propone una palabra/frase y el otro adivina letra por letra a traves de un chat en vivo. Incluye comodines, multiples modos de juego, estadisticas persistentes y puntuacion dinamica.
 
 - **URL:** https://cuellito.vercel.app
-- **Estado:** MVP funcional desplegado. Auditoria de 104 issues completada (13 criticos, 21 altos, 38 medios, 32 bajos — todos resueltos)
+- **Estado:** MVP + Fase 2-3 parcial. Auditoria cerrada (104/104). 3 features nuevas: desconexion, duo stats, frases de nosotros
 - **Rama principal:** `main`
 
 ---
@@ -59,13 +59,16 @@
 - [x] Accesibilidad: aria-labels en Keyboard, PowerupBar, ScoreBoard, HangmanSVG, WordDisplay, GameTimer, Modal, Card
 - [x] Navbar responsive con hamburger menu mobile
 - [x] Tests E2E en Chromium + Firefox con retries
+- [x] Deteccion de desconexion completa (presencia Realtime → 30s pausa → 600s abandono → overlay)
+- [x] Stats de dupla con tabs Personal/Pareja (victorias comparadas, rachas juntos, tiempo)
+- [x] Modo "Frases de Nosotros" completo (ProposerForm duo-aware + WordsPage duo tab + counters)
+- [x] Palabras de pareja CRUD (crear/eliminar desde WordsPage tab "De pareja")
+- [x] Lobby presence gate (bloquea inicio si oponente no en presencia real)
 
 ### No implementado (confirmado)
 
-- [ ] Dashboard de estadisticas por dupla con graficos
+- [ ] Graficos de progreso temporal en stats
 - [ ] Historial de partidas paginado
-- [ ] Modo "Frases de Nosotros" completo (parcialmente implementado)
-- [ ] Colecciones privadas de palabras por pareja
 - [ ] Temas visuales alternativos (modo claro, paletas)
 - [ ] Avatar personalizable
 - [ ] Categorias tematicas avanzadas
@@ -141,9 +144,9 @@
 - createRoom, getRoomByCode, joinRoom, updateRoomStatus
 
 ### statsService.ts
-- getUserStats, getDuoStats, getOrCreateDuo
+- getUserStats, getDuoStats, getDuoForUser, getOrCreateDuo
 - updateUserStatsAfterRound, updateUserStatsAfterMatch
-- updateDuoStatsAfterMatch
+- updateDuoStatsAfterMatch (con shared_streak, our_phrases_count)
 
 ---
 
@@ -156,7 +159,8 @@
 ### gameStore
 - gameState (GameState), roundState (RoundState)
 - updateGameStatus, addCorrectLetter, addWrongLetter
-- markPowerupUsed, incrementErrors, updateScores, reset
+- markPowerupUsed, incrementErrors, updateScores
+- setDisconnected, clearDisconnected, reset
 
 ### roomStore
 - room (Room), hostProfile, guestProfile
@@ -178,6 +182,14 @@
 RPCs ejecutadas en Supabase SQL Editor:
 - `append_letter_to_round` — UPDATE atomico de letras
 - `get_round_safe` — oculta word_encoded al guesser
+
+### Features post-auditoria (3 commits)
+
+| Commit | Descripcion |
+|--------|-----------|
+| `90b371a` | Deteccion de desconexion: useRealtime emit, useGameState timers, GamePage overlay, LobbyPage gate |
+| `c11d86c` | Stats de dupla: getDuoForUser, shared_streak fix, StatsPage tabs Personal/Pareja |
+| `59091be` | Frases de Nosotros: ProposerForm duo-aware, WordsPage duo tab, counters |
 
 Indices pendientes de ejecutar en Supabase:
 - `idx_rounds_match_round` (match_id, round_number)

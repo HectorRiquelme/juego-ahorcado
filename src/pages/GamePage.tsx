@@ -436,6 +436,8 @@ export default function GamePage() {
                 onSubmit={handleProposerSubmit}
                 maxPowerups={room?.initial_powerups ?? 3}
                 loading={proposerLoading}
+                gameMode={room?.mode}
+                duoId={room?.duo_id ?? null}
               />
             )}
           </motion.div>

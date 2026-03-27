@@ -136,6 +136,7 @@ export async function updateDuoStatsAfterMatch(params: {
   tie: boolean
   roundsPlayed: number
   matchDurationSeconds: number
+  mode?: string
 }): Promise<void> {
   const { data: rawCurrent } = await supabase
     .from('duo_stats').select('*').eq('duo_id', params.duoId).single()
@@ -165,6 +166,7 @@ export async function updateDuoStatsAfterMatch(params: {
     total_rounds_played: current.total_rounds_played + params.roundsPlayed,
     shared_streak: newSharedStreak,
     best_shared_streak: newBestSharedStreak,
+    our_phrases_count: current.our_phrases_count + (params.mode === 'our_phrases' ? 1 : 0),
     avg_match_duration_seconds: newAvgDuration,
     last_played_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
-import type { Category } from '@/types'
+import type { Category, WordEntry, GameMode } from '@/types'
 import type { ProposerFormData } from '@/types/game'
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
@@ -11,9 +11,11 @@ interface ProposerFormProps {
   onSubmit: (data: ProposerFormData) => void
   maxPowerups: number
   loading?: boolean
+  gameMode?: GameMode
+  duoId?: string | null
 }
 
-export default function ProposerForm({ onSubmit, maxPowerups, loading }: ProposerFormProps) {
+export default function ProposerForm({ onSubmit, maxPowerups, loading, gameMode, duoId }: ProposerFormProps) {
   const [categories, setCategories] = useState<Category[]>([])
   const [loadingCats, setLoadingCats] = useState(true)
   const [formData, setFormData] = useState<ProposerFormData>({
@@ -24,24 +26,44 @@ export default function ProposerForm({ onSubmit, maxPowerups, loading }: Propose
     powerupsGranted: maxPowerups,
     difficulty: 2,
   })
+  const [duoWords, setDuoWords] = useState<WordEntry[]>([])
   const [errors, setErrors] = useState<Partial<Record<keyof ProposerFormData, string>>>({})
 
+  const isOurPhrases = gameMode === 'our_phrases' && !!duoId
+
+  // Cargar categorías
   useEffect(() => {
     setLoadingCats(true)
+    let query = supabase.from('categories').select('*').order('name')
+
+    if (isOurPhrases) {
+      // Modo our_phrases: categorías del duo + la categoría "Libre" del sistema
+      query = query.or(`duo_id.eq.${duoId},and(is_system.eq.true,name.eq.Libre)`)
+    } else {
+      query = query.eq('is_public', true)
+    }
+
+    query.then(({ data, error }) => {
+      if (error) {
+        console.error('Error cargando categorías:', error)
+      } else {
+        setCategories(data ?? [])
+      }
+      setLoadingCats(false)
+    })
+  }, [isOurPhrases, duoId])
+
+  // Cargar palabras de pareja para sugerencias
+  useEffect(() => {
+    if (!isOurPhrases) { setDuoWords([]); return }
     supabase
-      .from('categories')
+      .from('word_entries')
       .select('*')
-      .eq('is_public', true)
-      .order('name')
-      .then(({ data, error }) => {
-        if (error) {
-          console.error('Error cargando categorías:', error)
-        } else {
-          setCategories(data ?? [])
-        }
-        setLoadingCats(false)
-      })
-  }, [])
+      .eq('duo_id', duoId!)
+      .order('created_at', { ascending: false })
+      .limit(20)
+      .then(({ data }) => setDuoWords((data ?? []) as WordEntry[]))
+  }, [isOurPhrases, duoId])
 
   const validate = (): boolean => {
     const newErrors: typeof errors = {}
@@ -88,6 +110,36 @@ export default function ProposerForm({ onSubmit, maxPowerups, loading }: Propose
         autoComplete="off"
         spellCheck={false}
       />
+
+      {/* Sugerencias de palabras de pareja */}
+      {isOurPhrases && duoWords.length > 0 && (
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium text-text-muted">💕 Palabras de pareja</label>
+          <div className="flex flex-wrap gap-2">
+            {duoWords.map((w) => (
+              <button
+                key={w.id}
+                type="button"
+                onClick={() => setFormData({
+                  ...formData,
+                  word: w.word,
+                  hint: w.hint ?? '',
+                  categoryId: w.category_id ?? '',
+                })}
+                className="text-xs bg-bg-surface2 border border-border px-3 py-1.5 rounded-full text-text-muted hover:border-primary hover:text-primary-light transition-colors"
+              >
+                {w.word}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {isOurPhrases && duoWords.length === 0 && (
+        <p className="text-xs text-text-subtle">
+          💡 No tienen palabras de pareja. Pueden crearlas en la sección Palabras.
+        </p>
+      )}
 
       {/* Categoría */}
       <div className="flex flex-col gap-1.5">

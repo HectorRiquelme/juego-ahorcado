@@ -114,6 +114,8 @@ export default function GamePage() {
       opponentAvatar: null,
       status: isMyTurnToPropose ? 'proposer_choosing' : 'guesser_playing',
       roundState: null,
+      disconnectedAt: null,
+      disconnectedPlayerId: null,
     })
   }, [matchId, user, room, code, myId, firstProposerId, gameState, setGameState])
 
@@ -351,10 +353,58 @@ export default function GamePage() {
   const isProposerChoosing = !roundState
   const isPlaying = !!roundState && !roundState.result
 
+  // ─── DISCONNECT OVERLAY ────────────────────────────────────────────────
+
+  const isDisconnected = !!gameState.disconnectedAt
+  const isPaused = gameState.status === 'paused'
+  const isAbandoned = gameState.status === 'abandoned'
+  const showDisconnectOverlay = isDisconnected || isPaused || isAbandoned
+
   // ─── RENDER ────────────────────────────────────────────────────────────
 
   return (
     <div className="min-h-dvh flex flex-col bg-gradient-game">
+      {/* Overlay de desconexión */}
+      {showDisconnectOverlay && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg/80 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-4 text-center px-6 max-w-sm">
+            {isAbandoned ? (
+              <>
+                <span className="text-5xl">💔</span>
+                <h2 className="text-xl font-bold text-accent">Partida abandonada</h2>
+                <p className="text-text-muted text-sm">
+                  Tu oponente no se reconectó a tiempo
+                </p>
+                <button
+                  onClick={() => navigate('/home')}
+                  className="mt-2 px-6 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold rounded-xl transition-colors"
+                >
+                  Volver al inicio
+                </button>
+              </>
+            ) : isPaused ? (
+              <>
+                <span className="text-5xl animate-pulse">⏸️</span>
+                <h2 className="text-xl font-bold text-warning">Partida pausada</h2>
+                <p className="text-text-muted text-sm">
+                  Esperando a que tu oponente se reconecte...
+                </p>
+                <div className="w-6 h-6 border-2 border-warning border-t-transparent rounded-full animate-spin mt-2" />
+              </>
+            ) : (
+              <>
+                <span className="text-5xl">📡</span>
+                <h2 className="text-xl font-bold text-text">Oponente desconectado</h2>
+                <p className="text-text-muted text-sm">
+                  La partida se pausará automáticamente en unos segundos...
+                </p>
+                <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mt-2" />
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Marcador */}
       <div className="px-4 pt-3 pb-2 shrink-0">
         <ScoreBoard

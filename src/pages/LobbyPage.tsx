@@ -30,9 +30,9 @@ export default function LobbyPage() {
   const [copied, setCopied] = useState(false)
 
   const isHost = room?.host_id === user?.id
-  // bothConnected: guest_id en BD es suficiente para habilitar el botón.
-  // onlinePlayers se usa solo para el indicador visual de "en línea".
-  const bothConnected = room?.guest_id != null
+  // bothConnected: guest_id en BD + oponente realmente presente en Realtime
+  const guestInPresence = room?.guest_id ? onlinePlayers.includes(room.guest_id) : false
+  const bothConnected = room?.guest_id != null && guestInPresence
 
   // Manejar eventos del lobby
   const handleEvent = useCallback(
@@ -161,6 +161,8 @@ export default function LobbyPage() {
         opponentAvatar: guestProfile?.avatar_url ?? null,
         status: 'proposer_choosing',
         roundState: null,
+        disconnectedAt: null,
+        disconnectedPlayerId: null,
       })
 
       // Notificar al otro jugador

@@ -14,6 +14,8 @@ interface GameStore {
   incrementErrors: () => void
   setOpponentReady: (ready: boolean) => void
   updateScores: (myScore: number, opponentScore: number) => void
+  setDisconnected: (playerId: string) => void
+  clearDisconnected: () => void
   reset: () => void
 }
 
@@ -123,6 +125,20 @@ export const useGameStore = create<GameStore>((set) => ({
   updateScores: (myScore, opponentScore) =>
     set((s) => ({
       gameState: s.gameState ? { ...s.gameState, myScore, opponentScore } : null,
+    })),
+
+  setDisconnected: (playerId) =>
+    set((s) => ({
+      gameState: s.gameState
+        ? { ...s.gameState, disconnectedAt: Date.now(), disconnectedPlayerId: playerId }
+        : null,
+    })),
+
+  clearDisconnected: () =>
+    set((s) => ({
+      gameState: s.gameState
+        ? { ...s.gameState, disconnectedAt: null, disconnectedPlayerId: null }
+        : null,
     })),
 
   reset: () => set({ gameState: null }),

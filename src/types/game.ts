@@ -15,6 +15,10 @@ export interface GameState {
   opponentAvatar: string | null
   status: GameStatus
   roundState: RoundState | null
+  /** Timestamp (Date.now()) de cuando se detectó la desconexión del oponente */
+  disconnectedAt: number | null
+  /** ID del jugador desconectado */
+  disconnectedPlayerId: string | null
 }
 
 export type GameStatus =

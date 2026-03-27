@@ -1,19 +1,25 @@
-import { useCallback, useRef } from 'react'
+import { useCallback, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import { supabase } from '@/lib/supabase'
 import { useGameStore } from '@/stores/gameStore'
 import { useAuthStore } from '@/stores/authStore'
 import { useRealtime } from './useRealtime'
 import type { GameEvent } from './useRealtime'
-import type { PowerupType } from '@/types'
-import type { ChatMessage } from '@/types/game'
+import type { PowerupType, MatchStatus } from '@/types'
+import type { GameStatus, ChatMessage } from '@/types/game'
 import {
   isWordComplete,
   normalizeWord,
 } from '@/utils/wordNormalizer'
-import { submitLetterGuess, finishRound } from '../services/gameService'
+import { submitLetterGuess, finishRound, updateMatchStatus } from '../services/gameService'
 import { updateUserStatsAfterRound } from '@/features/stats/services/statsService'
-import { PROPOSER_WIN_BASE, PROPOSER_WIN_PER_ERROR } from '@/utils/constants'
+import {
+  PROPOSER_WIN_BASE,
+  PROPOSER_WIN_PER_ERROR,
+  DISCONNECT_PAUSE_SECONDS,
+  DISCONNECT_ABANDON_SECONDS,
+} from '@/utils/constants'
 
 interface UseGameStateOptions {
   roomCode: string
@@ -42,11 +48,16 @@ export function useGameState({ roomCode, onChatMessage, onLetterResult, onTimeFr
     addWrongLetter,
     updateRoundState,
     updateGameStatus,
+    setDisconnected,
+    clearDisconnected,
   } = useGameStore()
   const navigate = useNavigate()
   const roundStartTime = useRef<number>(Date.now())
   const shieldConsumedRef = useRef(false)
   const processingLetterRef = useRef(false)
+  const pauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const abandonTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const prevStatusRef = useRef<GameStatus | null>(null)
 
   const myId = user?.id ?? ''
 
@@ -182,6 +193,66 @@ export function useGameState({ roomCode, onChatMessage, onLetterResult, onTimeFr
         case 'chat_message': {
           const message = p.message as ChatMessage | undefined
           if (message?.id && message?.text) onChatMessage?.(message)
+          break
+        }
+
+        case 'player_disconnected': {
+          const disconnectedId = safeString(p.userId)
+          if (!disconnectedId || !gameState?.matchId) break
+
+          // Guardar estado actual antes de pausar
+          const currentStatus = useGameStore.getState().gameState?.status
+          if (currentStatus && currentStatus !== 'paused' && currentStatus !== 'abandoned') {
+            prevStatusRef.current = currentStatus
+          }
+
+          setDisconnected(disconnectedId)
+          toast('Tu oponente se desconectó', { icon: '⚠️', duration: 5000 })
+
+          // Timer de pausa: 30 segundos
+          if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current)
+          pauseTimerRef.current = setTimeout(() => {
+            const gs = useGameStore.getState().gameState
+            if (!gs || gs.status === 'abandoned' || gs.status === 'match_end') return
+            updateGameStatus('paused')
+            void updateMatchStatus(gs.matchId, 'paused').catch(() => {})
+            toast('Partida pausada por desconexión', { icon: '⏸️', duration: 8000 })
+          }, DISCONNECT_PAUSE_SECONDS * 1000)
+
+          // Timer de abandono: 600 segundos
+          if (abandonTimerRef.current) clearTimeout(abandonTimerRef.current)
+          abandonTimerRef.current = setTimeout(() => {
+            const gs = useGameStore.getState().gameState
+            if (!gs || gs.status === 'match_end') return
+            updateGameStatus('abandoned')
+            void updateMatchStatus(gs.matchId, 'abandoned').catch(() => {})
+            toast.error('Partida abandonada por desconexión prolongada')
+            navigate(`/rooms/${roomCode}/match-end`)
+          }, DISCONNECT_ABANDON_SECONDS * 1000)
+
+          break
+        }
+
+        case 'player_reconnected': {
+          const reconnectedId = safeString(p.userId)
+          if (!reconnectedId) break
+
+          // Limpiar timers
+          if (pauseTimerRef.current) { clearTimeout(pauseTimerRef.current); pauseTimerRef.current = null }
+          if (abandonTimerRef.current) { clearTimeout(abandonTimerRef.current); abandonTimerRef.current = null }
+
+          clearDisconnected()
+
+          // Restaurar estado previo si estaba pausado
+          const currentStatus = useGameStore.getState().gameState?.status
+          if (currentStatus === 'paused' && prevStatusRef.current) {
+            updateGameStatus(prevStatusRef.current)
+            const gs = useGameStore.getState().gameState
+            if (gs) void updateMatchStatus(gs.matchId, prevStatusRef.current as MatchStatus).catch(() => {})
+            prevStatusRef.current = null
+          }
+
+          toast.success('Tu oponente se reconectó', { icon: '✅', duration: 3000 })
           break
         }
       }
@@ -399,6 +470,14 @@ export function useGameState({ roomCode, onChatMessage, onLetterResult, onTimeFr
     },
     [gameState, myId, updateRoundState, updateGameStatus, sendEvent, navigate, roomCode]
   )
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current)
+      if (abandonTimerRef.current) clearTimeout(abandonTimerRef.current)
+    }
+  }, [])
 
   return { guessLetter, sendEvent, handleRoundEnd }
 }

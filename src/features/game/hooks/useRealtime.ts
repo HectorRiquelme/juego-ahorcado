@@ -56,6 +56,8 @@ export function useRealtime({
     [userId]
   )
 
+  const prevOnlineIdsRef = useRef<string[]>([])
+
   useEffect(() => {
     const channel = supabase.channel(`room:${roomCode}`, {
       config: {
@@ -72,14 +74,39 @@ export function useRealtime({
       }
     })
 
-    // Presencia: saber quién está online
+    // Presencia: saber quién está online + detectar desconexiones
     const handlePresenceUpdate = () => {
-      if (!onPresenceChangeRef.current) return
       const state = channel.presenceState()
       const onlineIds = Object.values(state)
         .flat()
         .map((p) => (p as unknown as { user_id: string }).user_id)
-      onPresenceChangeRef.current(onlineIds)
+
+      // Detectar quién salió o entró comparando con la lista previa
+      const prev = prevOnlineIdsRef.current
+      if (prev.length > 0) {
+        // Jugadores que estaban y ya no están
+        const left = prev.filter((id) => !onlineIds.includes(id) && id !== userId)
+        // Jugadores que no estaban y ahora están
+        const joined = onlineIds.filter((id) => !prev.includes(id) && id !== userId)
+
+        for (const leftId of left) {
+          channel.send({
+            type: 'broadcast',
+            event: 'game_event',
+            payload: { type: 'player_disconnected', payload: { userId: leftId }, senderId: userId },
+          })
+        }
+        for (const joinedId of joined) {
+          channel.send({
+            type: 'broadcast',
+            event: 'game_event',
+            payload: { type: 'player_reconnected', payload: { userId: joinedId }, senderId: userId },
+          })
+        }
+      }
+      prevOnlineIdsRef.current = onlineIds
+
+      onPresenceChangeRef.current?.(onlineIds)
     }
 
     channel.on('presence', { event: 'sync' }, handlePresenceUpdate)

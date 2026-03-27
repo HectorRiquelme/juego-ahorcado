@@ -141,6 +141,8 @@ export const DEMO_GAME_STATE: GameState = {
   opponentAvatar: null,
   status: 'guesser_playing',
   roundState: null,
+  disconnectedAt: null,
+  disconnectedPlayerId: null,
 }
 
 export const DEMO_ROUND_STATE: RoundState = {

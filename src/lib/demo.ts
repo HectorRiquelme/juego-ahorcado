@@ -7,7 +7,7 @@
 export const IS_DEMO = import.meta.env.VITE_DEMO_MODE === 'true'
 
 import type {
-  Profile, UserStats, Category, WordEntry, Room, Match, Round,
+  Profile, UserStats, DuoStats, Category, WordEntry, Room, Match, Round,
 } from '@/types'
 import type { GameState, RoundState } from '@/types/game'
 
@@ -47,6 +47,35 @@ export const DEMO_STATS: UserStats = {
   best_streak: 11,
   avg_time_per_round_seconds: 38,
   total_play_time_seconds: 14400,
+  updated_at: new Date().toISOString(),
+}
+
+export const DEMO_DUO_STATS: DuoStats = {
+  id: 'duo-stats-001',
+  duo_id: 'duo-demo-001',
+  total_matches: 24,
+  matches_completed: 22,
+  player1_wins: 12,
+  player2_wins: 8,
+  ties: 2,
+  total_rounds_played: 89,
+  shared_streak: 5,
+  best_shared_streak: 11,
+  favorite_category_id: 'cat-1',
+  private_words_created: 8,
+  our_phrases_count: 15,
+  avg_match_duration_seconds: 720,
+  last_played_at: new Date(Date.now() - 86400000).toISOString(),
+  updated_at: new Date().toISOString(),
+}
+
+export const DEMO_PARTNER_PROFILE: Profile = {
+  id: DEMO_OPPONENT_ID,
+  username: 'tu_pareja',
+  display_name: 'Tu Pareja',
+  avatar_url: null,
+  bio: 'Partner de demo',
+  created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
 }
 

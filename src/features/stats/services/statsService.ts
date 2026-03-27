@@ -1,5 +1,5 @@
 import { supabase, db } from '@/lib/supabase'
-import type { UserStats, DuoStats } from '@/types'
+import type { UserStats, DuoStats, Profile } from '@/types'
 
 export async function getUserStats(userId: string): Promise<UserStats | null> {
   const { data, error } = await supabase.from('user_stats').select('*').eq('user_id', userId).single()
@@ -11,6 +11,30 @@ export async function getDuoStats(duoId: string): Promise<DuoStats | null> {
   const { data, error } = await supabase.from('duo_stats').select('*').eq('duo_id', duoId).single()
   if (error) return null
   return data as DuoStats
+}
+
+/** Busca el duo más reciente del usuario y retorna info del partner */
+export async function getDuoForUser(userId: string): Promise<{
+  duoId: string
+  partnerId: string
+  partnerProfile: Profile
+} | null> {
+  const { data: duos } = await supabase
+    .from('duos')
+    .select('*')
+    .or(`player1_id.eq.${userId},player2_id.eq.${userId}`)
+    .order('last_played_at', { ascending: false, nullsFirst: false })
+    .limit(1)
+
+  if (!duos?.length) return null
+  const duo = duos[0] as { id: string; player1_id: string; player2_id: string }
+  const partnerId = duo.player1_id === userId ? duo.player2_id : duo.player1_id
+
+  const { data: profile } = await supabase
+    .from('profiles').select('*').eq('id', partnerId).single()
+  if (!profile) return null
+
+  return { duoId: duo.id, partnerId, partnerProfile: profile as Profile }
 }
 
 export async function getOrCreateDuo(userId1: string, userId2: string) {
@@ -128,6 +152,10 @@ export async function updateDuoStatsAfterMatch(params: {
         (current.matches_completed + (params.completed ? 1 : 0))
       )
 
+  // shared_streak: partidas completadas consecutivas como duo
+  const newSharedStreak = params.completed ? current.shared_streak + 1 : 0
+  const newBestSharedStreak = Math.max(current.best_shared_streak, newSharedStreak)
+
   const { error } = await db.from('duo_stats').update({
     total_matches: current.total_matches + 1,
     matches_completed: current.matches_completed + (params.completed ? 1 : 0),
@@ -135,6 +163,8 @@ export async function updateDuoStatsAfterMatch(params: {
     player2_wins: current.player2_wins + (params.player2Won ? 1 : 0),
     ties: current.ties + (params.tie ? 1 : 0),
     total_rounds_played: current.total_rounds_played + params.roundsPlayed,
+    shared_streak: newSharedStreak,
+    best_shared_streak: newBestSharedStreak,
     avg_match_duration_seconds: newAvgDuration,
     last_played_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),

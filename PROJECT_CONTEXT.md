@@ -9,7 +9,7 @@
 **Cuellito** es un juego del ahorcado multijugador en tiempo real para dos personas. Un jugador propone una palabra/frase y el otro adivina letra por letra a traves de un chat en vivo. Incluye comodines, multiples modos de juego, estadisticas persistentes y puntuacion dinamica.
 
 - **URL:** https://cuellito.vercel.app
-- **Estado:** MVP funcional desplegado en produccion
+- **Estado:** MVP funcional desplegado. Auditoria de 104 issues completada (13 criticos, 21 altos, 38 medios, 32 bajos — todos resueltos)
 - **Rama principal:** `main`
 
 ---
@@ -52,6 +52,13 @@
 - [x] Suite E2E con Playwright (20 tests)
 - [x] Deploy automatico en Vercel
 - [x] Chunks de build optimizados
+- [x] ErrorBoundary global envolviendo todas las rutas
+- [x] RPCs atomicas en Supabase (append_letter_to_round, get_round_safe)
+- [x] Locks anti-concurrencia en hooks (processingLetterRef, processingRef, roomIdRef)
+- [x] Payload validation en eventos Realtime (safeString/safeNumber/safeBool/safeArray)
+- [x] Accesibilidad: aria-labels en Keyboard, PowerupBar, ScoreBoard, HangmanSVG, WordDisplay, GameTimer, Modal, Card
+- [x] Navbar responsive con hamburger menu mobile
+- [x] Tests E2E en Chromium + Firefox con retries
 
 ### No implementado (confirmado)
 
@@ -157,19 +164,33 @@
 
 ---
 
-## Bugs corregidos recientemente (ultimos commits)
+## Auditoria completada (9 commits, 104 issues)
 
-- fix: bugs 7, 13, 14 y timeout de ronda (09811f2)
-- fix: habilitar boton iniciar partida cuando guest_id existe en BD (13e29e1)
-- fix: corregir bugs medios y de UX (44f5bb9)
+| Commit | Descripcion |
+|--------|-----------|
+| `d5cfbc9` | 12 criticos: error handling, guards, RLS |
+| `71a2d00` | 2 criticos + 11 altos + 6 medios + 1 bajo: RPCs, ErrorBoundary, Keyboard fisico |
+| `48e76d5` | 7 altos + 5 medios + 3 bajos: payload validation, bounds checking, Modal a11y |
+| `88567ea` | 3 altos: race condition locks, re-suscripcion Realtime |
+| `1599e9d` | 26 medios: payload validation, Navbar mobile, E2E robustos, Firefox |
+| `2ebb4ef` | 27 bajos: accesibilidad, indices BD, cleanup, JSDoc |
+
+RPCs ejecutadas en Supabase SQL Editor:
+- `append_letter_to_round` — UPDATE atomico de letras
+- `get_round_safe` — oculta word_encoded al guesser
+
+Indices pendientes de ejecutar en Supabase:
+- `idx_rounds_match_round` (match_id, round_number)
+- `idx_round_events_round_type` (round_id, event_type)
 
 ---
 
 ## Puntos delicados
 
-1. **word_encoded en base64** — no es encriptacion real, la seguridad depende del RLS
+1. **word_encoded en base64** — seguridad reforzada con RPC `get_round_safe` + RLS
 2. **Realtime free tier** — limite de 200 conexiones simultaneas
-3. **Tests contra produccion** — no hay entorno de staging ni Supabase local
+3. **Tests contra produccion** — no hay entorno de staging ni Supabase local (env vars configuradas para futuro staging)
 4. **Modo demo** — debe mantenerse funcional para demos sin backend
 5. **Alternancia de roles** — proponente/desafiado se alternan cada ronda, logica critica en gameService
 6. **Timer competitivo** — solo activo en modo competitive (60s), usa timer_started_at en la BD
+7. **Locks en hooks** — processingLetterRef y processingRef previenen race conditions en UI

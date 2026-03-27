@@ -1,7 +1,8 @@
 # NEXT_STEPS.md — Cuellito
 
 > Auditoria completa (2026-03-23). **104 de 104 issues resueltos** en 9 commits.
-> Actualizado tras commit `2ebb4ef`. RPCs ejecutadas. Auditoria cerrada.
+> Ultimo commit: `eaec11f`. RPCs ejecutadas. Auditoria cerrada.
+> Actualizado: 2026-03-24.
 
 ---
 
@@ -48,13 +49,13 @@
 - `Card.tsx` — keyboard support (Enter/Space), role=button, tabIndex cuando es clickable
 - `ChatPanel.tsx` — fallback para senderName vacio en todas las burbujas
 
-### Commit 5 — 3 altos restantes (3 archivos)
+### Commit 88567ea — 3 altos restantes (3 archivos)
 **Altos resueltos:**
 - `useGameState.ts` — Lock `processingLetterRef` que bloquea entradas mientras se procesa una letra + lee estado fresco del store para verificar fin de ronda
 - `usePowerups.ts` — Lock `processingRef` anti doble-click + liberacion en finally (previene activacion duplicada)
 - `LobbyPage.tsx` — `roomIdRef` para suscripcion postgres_changes: solo se suscribe una vez por room.id, no se re-suscribe cada vez que room cambia
 
-### Commit 6 — 26 medios (7 archivos)
+### Commit 1599e9d — 26 medios (7 archivos)
 **Payload validation (8):** helpers safeString/safeNumber/safeBool/safeArray en useGameState.ts, reemplazan 8 unsafe `as Type`
 **UI/UX (4):** ProposerForm loading state categorias, Navbar hamburger mobile con links, Navbar close on outside click
 **Tests E2E (12):** selectores CSS → getByText/getByRole, waitForTimeout → waitFor conditions, delays reducidos, Firefox project
@@ -76,7 +77,7 @@ Todos los issues de severidad alta fueron resueltos.
 
 ### Bajos restantes: 0 ✅
 
-### Commit 7 — 27 bajos (11 archivos)
+### Commit 2ebb4ef — 27 bajos (11 archivos)
 **Accesibilidad (8):** aria-labels en HangmanSVG, Keyboard, PowerupBar, ScoreBoard, GameTimer, WordDisplay, ChatPanel, LobbyPage
 **Schema indices (2):** (match_id, round_number) en rounds, (round_id, event_type) en round_events
 **CSS/UX (5):** transitions consistentes, hover states

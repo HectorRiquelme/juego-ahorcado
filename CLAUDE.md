@@ -49,9 +49,11 @@ src/
     dates.ts            # Utilidades de fecha
   hooks/
     useAuth.ts, useProfile.ts, useSupabase.ts
+  animations/
+    variants.ts         # Variantes de Framer Motion (hangmanPart, letterReveal, scoreUpdate)
   components/
-    layout/             # Layout.tsx, Navbar.tsx
-    shared/             # DemoBanner.tsx
+    layout/             # Layout.tsx, Navbar.tsx (incluye hamburger mobile)
+    shared/             # DemoBanner.tsx, ErrorBoundary.tsx
     ui/                 # Badge, Button, Card, Input, Modal
   features/
     game/
@@ -154,9 +156,28 @@ Roles por ronda (se alternan):
 - **Proponente:** elige palabra, categoria, pista. Confirma letras con el teclado
 - **Desafiado:** pide letras por chat. Usa comodines. Intenta adivinar
 
+## RPCs en Supabase (ejecutadas manualmente)
+
+- `append_letter_to_round(p_round_id, p_letter, p_correct, p_shield_active)` — UPDATE atomico de letras, elimina race condition
+- `get_round_safe(p_round_id)` — retorna datos de ronda ocultando `word_encoded` al guesser via `auth.uid()`
+
+## Patrones de seguridad en hooks
+
+- `processingLetterRef` en `useGameState.ts` — lock para evitar procesamiento simultaneo de letras
+- `processingRef` en `usePowerups.ts` — lock anti doble-click en comodines
+- `roomIdRef` en `LobbyPage.tsx` — evita re-suscripciones multiples a Realtime
+- `safeString/safeNumber/safeBool/safeArray` en `useGameState.ts` — validacion de payloads de eventos Realtime
+
+## Tests E2E
+
+- Chromium + Firefox (2 projects en `playwright.config.ts`)
+- retries: 1 para tests flaky de Realtime
+- Claves via env vars: `E2E_SUPABASE_URL`, `E2E_SUPABASE_ANON_KEY`, `E2E_SUPABASE_SERVICE_KEY` (con fallback hardcoded)
+
 ## Puntos delicados
 
-- `word_encoded` usa base64 — la seguridad real depende del RLS de Supabase
+- `word_encoded` usa base64 — la seguridad real depende del RLS de Supabase + RPC `get_round_safe`
 - Realtime tiene limite de 200 conexiones simultaneas en free tier
 - El modo demo simula datos sin tocar Supabase (ver `lib/demo.ts`)
 - Los tests E2E son secuenciales por naturaleza del juego multijugador
+- ErrorBoundary global envuelve todas las rutas en `App.tsx`

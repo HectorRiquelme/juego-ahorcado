@@ -10,7 +10,7 @@
 - **Tipo:** Juego del ahorcado multijugador en tiempo real (SPA)
 - **Objetivo:** Dos jugadores se enfrentan: uno propone una palabra/frase y el otro adivina letra por letra a traves de un chat en vivo, con comodines y puntuacion dinamica.
 - **URL produccion:** https://cuellito.vercel.app
-- **Estado:** MVP funcional desplegado. Version publica operativa.
+- **Estado:** MVP funcional desplegado. Auditoria de 104 issues completada (0 pendientes). Version publica operativa.
 
 ---
 
@@ -71,16 +71,17 @@ Auth → Home → CreateRoom/JoinRoom → Lobby (espera oponente)
 ```
 src/
   main.tsx            # Entry point
-  App.tsx             # Rutas + RequireAuth + modo demo
+  App.tsx             # Rutas + RequireAuth + ErrorBoundary + modo demo
   index.css           # Tailwind globals
+  animations/         # variants.ts (Framer Motion: hangmanPart, letterReveal, scoreUpdate)
   lib/                # supabase.ts, demo.ts
   types/              # database.ts (auto-gen), game.ts, index.ts
   stores/             # authStore, gameStore, roomStore
   utils/              # constants, scoreCalculator, wordNormalizer, cn, dates
   hooks/              # useAuth, useProfile, useSupabase
   components/
-    layout/           # Layout, Navbar
-    shared/           # DemoBanner
+    layout/           # Layout, Navbar (hamburger mobile)
+    shared/           # DemoBanner, ErrorBoundary
     ui/               # Badge, Button, Card, Input, Modal
   features/
     game/
@@ -121,10 +122,18 @@ e2e/                  # 4 suites, 20 tests, helpers.ts
 - `round_result`: won, lost, timeout, abandoned
 - `powerup_type`: reveal_letter, eliminate_wrong, extra_hint, shield, show_structure, time_freeze
 
+### RPCs (funciones PostgreSQL)
+- `append_letter_to_round` — UPDATE atomico de letras (elimina race condition)
+- `get_round_safe` — retorna ronda ocultando word_encoded al guesser
+- `create_user_stats_on_profile` — trigger: crea stats al registrarse
+- `update_updated_at_column` — trigger: actualiza updated_at en cada UPDATE
+
 ### Seguridad
 - RLS habilitado en todas las tablas
-- `word_encoded` protegido: el guesser no puede leerlo directamente
+- `word_encoded` protegido via RPC `get_round_safe` + RLS
 - Realtime habilitado en: rooms, matches, rounds
+- Locks anti-concurrencia en hooks: `processingLetterRef`, `processingRef`, `roomIdRef`
+- Payload validation con helpers: `safeString`, `safeNumber`, `safeBool`, `safeArray`
 
 ---
 
@@ -181,10 +190,11 @@ npx playwright test # E2E (contra produccion)
 
 ## 9. Tests E2E
 
-- Framework: Playwright
+- Framework: Playwright (Chromium + Firefox)
 - Base URL: https://cuellito.vercel.app (produccion)
-- Secuenciales (el juego multijugador requiere orden)
+- Secuenciales (el juego multijugador requiere orden), retries: 1
 - 4 suites: auth (7), navigation (8), room (3), game (2) = 20 tests
+- Claves via env vars: `E2E_SUPABASE_URL`, `E2E_SUPABASE_ANON_KEY`, `E2E_SUPABASE_SERVICE_KEY`
 
 ---
 
